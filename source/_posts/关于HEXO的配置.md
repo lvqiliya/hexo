@@ -7,10 +7,11 @@ categories:
 - 关于HEXO的二三事
 ---
 
-# 配置
+# Chapter01 配置
 ## 教程
 - [NexT主题配置](http://theme-next.iissnan.com/getting-started.html#avatar-setting)
 - [HEXO官方文档](https://hexo.io/docs/index.html)
+- 国内原因，用`npm install -g cnpm --registry=https://registry.npm.taobao.org`,将`npm`改用淘宝源的`cnpm`
 
 ## 配置标签页等
 我使用的主题是NexT的主题，其中主题的配置文件需要修改，才能得到对应的界面和效果。<!--more-->
@@ -33,27 +34,40 @@ type: "tags"
 ---
 ```
 同理其他页面也新增即可。
-
-
-# 使用
-
+# Chapter02 使用
 ## 修改主题命令流程
-
 ```bash
 $ cnpm install hexo-deployer-git --save
 $ hexo clean
 $ hexo g
 $ hexo d
 ```
-
-# 多台终端
+# Chapter03 多台终端
 由于不可能只在一个终端写博客，大部分情况都是属于工作电脑和私人电脑的两台电脑的情况，所以本小节针对多台终端如何轻松还原博客编写环境
+## 基本思路是通过管理两个项目
+- `git@github.com:you_name/you_name.github.io.git` 用户管理hexo生成的博客代码
+- `git@github.com:you_name/hexo.git` 用于管理博客源代码
 
-基本思路是通过管理两个项目
-- git@github.com:you_name/you_name.github.io.git 用户管理hexo生成的博客代码
-- git@github.com:you_name/hexo.git 用于管理博客源代码
+## 搭建流程
+1. 创建项目*you_name.github.io*和*hexo*；
+2. D/E/F盘Git Bash中执行`git clone git@github.com:you_name/hexo.git`；
+3. 进入hexo文件夹，进入Git Bash按顺序执行
+```
+npm install hexo
+hexo init
+npm install
+npm install hexo-deployer-git
+```
+4. 配置好_config.yml中的信息
+5. 利用TortoiseGit把hexo提交到远程仓库
+6. 以后每一次修改文件，都需要push到hexo仓库的master分支。
 
-
-搭建流程
--
-- 将环境成功搭建，并能够运行的
+## 本地资料丢失
+1. D/E/F盘Git Bash中执行`git clone git@github.com:you_name/hexo.git`；
+2. 进入hexo文件夹，进入Git Bash按顺序执行
+```
+npm install hexo
+npm install
+npm install hexo-deployer-git
+此处不需要再次 hexo init
+```
