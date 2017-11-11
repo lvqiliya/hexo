@@ -45,3 +45,15 @@ $ hexo clean
 $ hexo g
 $ hexo d
 ```
+
+# 多台终端
+由于不可能只在一个终端写博客，大部分情况都是属于工作电脑和私人电脑的两台电脑的情况，所以本小节针对多台终端如何轻松还原博客编写环境
+
+基本思路是通过管理两个项目
+- git@github.com:you_name/you_name.github.io.git 用户管理hexo生成的博客代码
+- git@github.com:you_name/hexo.git 用于管理博客源代码
+
+
+搭建流程
+-
+- 将环境成功搭建，并能够运行的
