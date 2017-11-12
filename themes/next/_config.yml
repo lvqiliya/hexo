@@ -22,7 +22,7 @@ keywords: "Hexo, NexT"
 rss:
 
 # Specify the date when the site was setup
-#since: 2015
+since: 2017
 
 # icon between year and author @Footer
 authoricon: heart
@@ -99,7 +99,7 @@ scheme: Mist
 # Value before `||` delimeter is the target permalink.
 # Value after `||` delimeter is the name of FontAwesome icon. If icon (with or without delimeter) is not specified, globe icon will be loaded.
 #social:
-  #GitHub: https://github.com/yourname || github
+  #GitHub: https://github.com/lvqiliya || github
   #E-Mail: mailto:yourname@gmail.com || envelope
   #Google: https://plus.google.com/yourname || google
   #Twitter: https://twitter.com/yourname || twitter
@@ -125,7 +125,7 @@ social_icons:
 # Sidebar Avatar
 # in theme directory(source/images): /images/avatar.gif
 # in site  directory(source/uploads): /uploads/avatar.gif
-#avatar: /images/avatar.gif
+avatar: /images/avatar.jpg
 
 # Table Of Contents in the Sidebar
 toc:
@@ -201,11 +201,14 @@ post_meta:
 # Post wordcount display settings
 # Dependencies: https://github.com/willin/hexo-wordcount
 post_wordcount:
+  #item_text: true
+  #wordcount: false
+  #min2read: false
+  #totalcount: false
+  #separated_meta: true
   item_text: true
-  wordcount: false
-  min2read: false
-  totalcount: false
-  separated_meta: true
+  wordcount: true
+  min2read: true
 
 # Wechat Subscriber
 #wechat_subscriber:
@@ -586,7 +589,7 @@ motion:
 fancybox: true
 
 # Progress bar in the top during page loading.
-pace: false
+pace: true
 # Themes list:
 #pace-theme-big-counter
 #pace-theme-bounce
@@ -711,3 +714,7 @@ images: images
 
 # Theme version
 version: 5.1.2
+
+# 文章末尾添加“本文结束”标记
+passage_end_tag:
+  enabled: true

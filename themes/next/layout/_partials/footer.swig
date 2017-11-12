@@ -34,4 +34,11 @@
     #}NexT.{{ theme.scheme }}{#
   #}</a> v{{ theme.version }}{#
 #}</div>
+	
+<span class="post-meta-divider">|</span>
+	
+	<div class="theme-info">
+  <div class="powered-by"></div>
+  <span class="post-count">全站共{{ totalcount(site) }}字</span>
+</div>
 {% endif %}

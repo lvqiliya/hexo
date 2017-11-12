@@ -6,7 +6,8 @@ tags:
 categories:
 - 关于HEXO的二三事
 ---
-
+HEXO的安装和配置指南，包括从零搭建、多终端编辑博客等
+<!--more-->
 # Chapter01 配置
 ## 教程
 - [NexT主题配置](http://theme-next.iissnan.com/getting-started.html#avatar-setting)
@@ -14,7 +15,7 @@ categories:
 - 国内原因，用`npm install -g cnpm --registry=https://registry.npm.taobao.org`,将`npm`改用淘宝源的`cnpm`
 
 ## 配置标签页等
-我使用的主题是NexT的主题，其中主题的配置文件需要修改，才能得到对应的界面和效果。<!--more-->
+我使用的主题是NexT的主题，其中主题的配置文件需要修改，才能得到对应的界面和效果。
 
 打开`themes\next\_config.yml`，找到`menu`之后，建议复制需要的紧接着下面然后注释掉原本的，然后不需要修改其他的。
 

@@ -5,6 +5,7 @@ tags: [Shortcuts, Chrome]
 categories: 白科技
 ---
 本快捷键整理来源于chrome扩展[*Vimium*](http://chromecj.com/productivity/2014-12/325.html)与[火狐浏览器快捷键](https://support.mozilla.org/zh-CN/kb/%E9%94%AE%E7%9B%98%E5%BF%AB%E6%8D%B7%E9%94%AE?redirectlocale=en-US&as=u&redirectslug=Keyboard+shortcuts&utm_source=inproduct)，仅用于学习与分享。
+<!--more-->
 
 先说两句：
 - 快捷键的整理基于lvqiliya的使用习惯，如有遗漏，鼠标解决
@@ -12,7 +13,6 @@ categories: 白科技
 - 单字母快捷有大小写区分
 - *Vimium* 下载与设置文末有叙，其中的快捷键大部分都是单字母快捷键
 - chrome如若进入`chrome://`开头，如`chrome://downloads/`下载页面，*Vimium* 快捷键会失效，届时使用组合快捷键即可
-<!--more-->
 
 
 # 导航
