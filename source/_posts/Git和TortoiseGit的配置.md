@@ -21,10 +21,10 @@ categories: 白科技
 # TortoiseGit配置
 1. 打开PuTTYgen
 Firstly, loading an existing private kiy file,then save private key to .ssh
-![PuTTYgen设置](Git和TortoiseGit的配置/PuTTYgen.png)
+![PuTTYgen设置](/images/git config/PuTTYgen.png)
 
 2. 打开Pageant
 Add Key the private key
-![PuTTYgen设置](Git和TortoiseGit的配置/Pageant.png)
+![PuTTYgen设置](/images/git config/Pageant.png)
 
 搞定
