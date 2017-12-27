@@ -67,3 +67,18 @@ categories: 白科技
 ## 忽略.idea、.mvn和*.iml
 - 路径`Files >> Setting >> Editor >> File Types`
 - Ignore files and folders中添加`.idea;.mvn;*.iml`
+
+# MySQL配置
+mysql的配置碰到了不少的坑，特别是5.7+的版本，它不包含 *.ini* 的配置文件，也不包含 *data* 文件夹。经过一番折腾，整理出以下有效的配置。
+- 下载mysql二进制压缩版，[mysql官方传送门](https://dev.mysql.com/downloads/mysql/)。
+- 新建系统变量
+> `MYSQL_HOME` `D:\Program Files\mysql-5.7.20-winx64`
+
+- 添加系统变量
+> `Path` `%MYSQL_HOME%\bin;`
+
+- [官方配置文档传送门](https://dev.mysql.com/doc/refman/5.7/en/windows-installation.html)
+## my.ini
+新建配置文件 *my.ini*，内容如下：
+```mysql
+```
