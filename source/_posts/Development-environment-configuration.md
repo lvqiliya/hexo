@@ -1,7 +1,7 @@
 ---
 title: Development environment configuration
 date: 2017-12-26 22:53:26
-tags: [Java, Maven, Tomcat, IDEA]
+tags: [Java, Maven, Tomcat, MySQL, Gradle, IDEA]
 categories: 白科技
 ---
 整理的环境配置
@@ -61,6 +61,44 @@ categories: 白科技
       <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
       <mirrorOf>central</mirrorOf>
 </mirror>
+```
+
+## Gradle
+- 下载gradle二进制压缩版，[gradle官方传送门](https://gradle.org/install/#manually)。
+- 新建系统变量：
+> `GRADLE_HOME` `D:\Program Files\gradle-4.4.1`
+
+- 添加系统变量：
+> `Path` `%GRADLE_HOME%\bin;`
+
+- 校验是否成功：
+> `gradle -v`
+
+- 建 *init.gradle* 文件
+```gradle
+allprojects{
+    repositories {
+        def ALIYUN_REPOSITORY_URL = 'http://maven.aliyun.com/nexus/content/groups/public'
+        def ALIYUN_JCENTER_URL = 'http://maven.aliyun.com/nexus/content/repositories/jcenter'
+        all { ArtifactRepository repo ->
+            if(repo instanceof MavenArtifactRepository){
+                def url = repo.url.toString()
+                if (url.startsWith('https://repo1.maven.org/maven2')) {
+                    project.logger.lifecycle "Repository ${repo.url} replaced by $ALIYUN_REPOSITORY_URL."
+                    remove repo
+                }
+                if (url.startsWith('https://jcenter.bintray.com/')) {
+                    project.logger.lifecycle "Repository ${repo.url} replaced by $ALIYUN_JCENTER_URL."
+                    remove repo
+                }
+            }
+        }
+        maven {
+            url ALIYUN_REPOSITORY_URL
+            url ALIYUN_JCENTER_URL
+        }
+    }
+}
 ```
 
 # IDEA配置
