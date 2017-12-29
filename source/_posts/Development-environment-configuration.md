@@ -1,7 +1,7 @@
 ---
 title: Development environment configuration
 date: 2017-12-26 22:53:26
-tags: [Java, Maven, Tomcat, MySQL, Gradle, IDEA]
+tags: [Java, Maven, Tomcat, Gradle, Git, TortoiseGit, IDEA, MySQL]
 categories: 白科技
 ---
 整理的环境配置
@@ -101,10 +101,47 @@ allprojects{
 }
 ```
 
+## Git配置
+- 初始化
+> $ git config --global user.name "lvqiliya"
+>
+> $ git config --global user.email lvqiliya@163.com
+
+- SSH生成
+> $ ssh-keygen -t rsa -b 4096 -C "lvqiliya@163.com"
+
+- SSh验证
+> $ ssh -T git@github.com
+
+## TortoiseGit配置
+- 打开PuTTYgen
+Firstly, loading an existing private kiy file,then save private key to .ssh
+![PuTTYgen设置](/images/Development environment configuration/PuTTYgen.png)
+
+- 打开Pageant
+Add Key the private key
+![PuTTYgen设置](/images/Development environment configuration/Pageant.png)
+
 # IDEA配置
-## 忽略.idea、.mvn和*.iml
+## Ignore the suffix
 - 路径`Files >> Setting >> Editor >> File Types`
 - Ignore files and folders中添加`.idea;.mvn;*.iml`
+
+## Before start-up
+- 进入到解压后的IntelliJ IDEA文件夹中的 *bin* 文件夹，找到 *idea64.exe.vmoptions* 文件
+![File location](/images/Development environment configuration/vmoptions.png)
+- 修改参数
+![Change parameter](/images/Development environment configuration/vmoptionsconfig.png)
+
+*`-Xms1024m`，`-Xmx1536m`，具体情况可根据电脑配置自行适当修改，本教程只提供参考值，字段含义请自行百度。*
+
+## Default setting
+- System Settings
+![System Settings](/images/Development environment configuration/systemsettings.png)
+
+*说明：取消勾选Reopen last project on startup，这样可以在打开IntelliJ IDEA选择自己想选择的项目Synchronization操作框内，第三项表示自动保存频率。*
+- Editor Tabs
+![Editor Tabs](/images/Development environment configuration/editortabs.png)
 
 # MySQL配置
 mysql的配置碰到了不少的坑，特别是5.7+的版本，它不包含 *.ini* 的配置文件，也不包含 *data* 文件夹。经过一番折腾，整理出以下有效的配置。
