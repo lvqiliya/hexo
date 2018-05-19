@@ -140,8 +140,38 @@ Add Key the private key
 ![System Settings](/images/Development environment configuration/systemsettings.png)
 
 *说明：取消勾选Reopen last project on startup，这样可以在打开IntelliJ IDEA选择自己想选择的项目Synchronization操作框内，第三项表示自动保存频率。*
-- Editor Tabs
-![Editor Tabs](/images/Development environment configuration/editortabs.png)
+- 打开内存监控
+Appearance & Behavior >> Appearance:
+Window Options - [check]Show memory indicator;
+- 快捷键修改：
+Keymap：
+查找关键字“d”，修改Duplicate Entire Lines的快捷键为Ctrl+D;
+- 不区分大小写：
+Editor >> General >> Code Completion：
+Case sensitive compeltion - None;
+- Tab显示格式和数目：
+Editor >> General >> Editor Tabs >> Tab Closing Policy:
+Tab Appearance - [uncheck]Show Tabs In Single Row;
+Tab Limit — 30;
+- 引入包完整显示不用*替代：
+Editor >> Code Style >> Java >> Imports：
+Class count to use import with * - 50;
+Names count to use static import with * - 30;
+- 代码注释：
+Editor >> Code Style >> Java >> Code Generation：
+Comment Code - [uncheck]Line comment at first column;
+- 修改类注释模板:
+Editor >> File and Code Templates:
+Class Interface Enum - 自第二行加一下注释，前后各空一行
+```
+/**
+  * FileName: ${NAME}
+  * Author:   ${USER}
+  * Date:     ${DATE} ${TIME}
+  * Description: ${DESCRIPTION}
+  * Version:  ${VERSION}
+  */
+```
 
 # MySQL配置
 mysql的配置碰到了不少的坑，特别是5.7+的版本，它不包含 *.ini* 的配置文件，也不包含 *data* 文件夹。经过一番折腾，整理出以下有效的配置。
