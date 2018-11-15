@@ -12,7 +12,8 @@ HEXO的安装和配置指南，包括从零搭建、多终端编辑博客等
 ## 教程
 - [NexT主题配置](http://theme-next.iissnan.com/getting-started.html#avatar-setting)
 - [HEXO官方文档](https://hexo.io/docs/index.html)
-- 国内原因，用`npm install -g cnpm --registry=https://registry.npm.taobao.org`,将`npm`改用淘宝源的`cnpm`
+- 国内原因，用`npm install -g cnpm --registry=https://registry.npm.taobao.org`,将`npm`改用淘宝源的`cnpm`（cmd中执行即可）
+- 接下来需要执行`$ cnpm install -g hexo-cli`来安装hexo
 
 ## 配置标签页等
 我使用的主题是NexT的主题，其中主题的配置文件需要修改，才能得到对应的界面和效果。
@@ -54,10 +55,10 @@ $ hexo d
 2. D/E/F盘Git Bash中执行`git clone git@github.com:you_name/hexo.git`；
 3. 进入hexo文件夹，进入Git Bash按顺序执行
 ```
-npm install hexo
-hexo init
-npm install
-npm install hexo-deployer-git
+$ cnpm install hexo
+$ hexo init
+$ cnpm install
+$ cnpm install hexo-deployer-git
 ```
 4. 配置好_config.yml中的信息
 5. 利用TortoiseGit把hexo提交到远程仓库
@@ -67,8 +68,8 @@ npm install hexo-deployer-git
 1. D/E/F盘Git Bash中执行`git clone git@github.com:you_name/hexo.git`；
 2. 进入hexo文件夹，进入Git Bash按顺序执行
 ```
-npm install hexo
-npm install
-npm install hexo-deployer-git
+$ cnpm install hexo
+$ cnpm install
+$ cnpm install hexo-deployer-git
 此处不需要再次 hexo init
 ```

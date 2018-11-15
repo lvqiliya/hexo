@@ -33,14 +33,14 @@ categories: 白科技
 > `Path` `%CATALINA_HOME%\bin;`
 
 - 校验是否成功：
-> 启动 *D:\Program Files\apache-tomcat-8.5.24\bin\startup.bat*
+> 启动 *D:\Program_Files\apache-tomcat-8.5.24\bin\startup.bat*
 >
 > 打开 [http://localhost:8080](http://localhost:8080)
 
 ## Maven
 - 下载maven二进制压缩版，[maven官方传送门](http://maven.apache.org/)。
 - 新建系统变量：
-> `MAVEN_HOME` `D:\Program Files\apache-maven-3.5.2`
+> `MAVEN_HOME` `D:\Program_Files\apache-maven-3.5.2`
 
 - 添加系统变量：
 > `Path` `%MAVEN_HOME%\bin;`
@@ -53,7 +53,7 @@ categories: 白科技
 >
 > 修改本地仓库 & 添加阿里云镜像
 ```xml
-<localRepository>D:\Program Files\apache-maven-3.5.2\repository</localRepository>
+<localRepository>D:\Program_Files\apache-maven-3.5.2\repository</localRepository>
 
 <mirror>
       <id>alimaven</id>
@@ -66,7 +66,7 @@ categories: 白科技
 ## Gradle
 - 下载gradle二进制压缩版，[gradle官方传送门](https://gradle.org/install/#manually)。
 - 新建系统变量：
-> `GRADLE_HOME` `D:\Program Files\gradle-4.4.1`
+> `GRADLE_HOME` `D:\Program_Files\gradle-4.4.1`
 
 - 添加系统变量：
 > `Path` `%GRADLE_HOME%\bin;`
@@ -177,7 +177,7 @@ Class Interface Enum - 自第二行加一下注释，前后各空一行
 mysql的配置碰到了不少的坑，特别是5.7+的版本，它不包含 *.ini* 的配置文件，也不包含 *data* 文件夹。经过一番折腾，整理出以下有效的配置。
 - 下载mysql二进制压缩版，[mysql官方传送门](https://dev.mysql.com/downloads/mysql/)。
 - 新建系统变量：
-> `MYSQL_HOME` `D:\Program Files\mysql-5.7.20-winx64`
+> `MYSQL_HOME` `D:\Program_Files\mysql-5.7.20-winx64`
 
 - 添加系统变量：
 > `Path` `%MYSQL_HOME%\bin;`
@@ -188,15 +188,29 @@ mysql的配置碰到了不少的坑，特别是5.7+的版本，它不包含 *.in
 新建配置文件 *my.ini*，内容如下：
 ```ini
 [mysqld]
-# 设置mysql的安装目录
-basedir=D:\\Program Files\\mysql-5.7.18-winx64
-# 设置mysql数据库的数据的存放目录，必须是data
-datadir=D:\\Program Files\\mysql-5.7.18-winx64\\data
-# mysql端口
+# 设置3306端口
 port=3306
-# 字符集
-character_set_server=utf8
-sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+# 设置mysql的安装目录
+basedir=D:/Program_Files/mysql-8.0.12-winx64
+# 设置mysql数据库的数据的存放目录
+datadir=D:/Program_Files/mysql-8.0.12-winx64/data
+# 允许最大连接数
+max_connections=200
+# 允许连接失败的次数。这是为了防止有人从该主机试图攻击数据库系统
+max_connect_errors=10
+# 服务端使用的字符集默认为UTF8
+character-set-server=utf8
+# 创建新表时将使用的默认存储引擎
+default-storage-engine=INNODB
+# 默认使用“mysql_native_password”插件认证
+# default_authentication_plugin=mysql_native_password
+[mysql]
+# 设置mysql客户端默认字符集
+default-character-set=utf8
+[client]
+# 设置mysql客户端连接服务端时默认使用的端口
+port=3306
+default-character-set=utf8
 ```
 这地方要注意的是 *basedir* 和 *datadir* 的路径，要么使用 **/** 要么使用 **\\\\** ，否则会在下面的步骤出问题。
 
@@ -215,4 +229,8 @@ sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
 > `mysql -u root -p`
 
 - 修改密码：
-> `set password=password('123456')`
+```sql
+use mysql;
+alter user 'root'@'localhost' identified with mysql_native_password by '123456';
+flush privileges;
+```
