@@ -103,14 +103,36 @@ allprojects{
 
 ## Git配置
 - 初始化
-> $ git config --global user.name "lvqiliya"
->
-> $ git config --global user.email lvqiliya@163.com
+```git
+git config --global user.name "lvqiliya"
+git config --global user.email "lvqiliya@gmail.com"
+git config --global http.proxy socks5://127.0.0.1:1080
+git config --global https.proxy socks5://127.0.0.1:1080
+如果想要取消代理则执行以下命令：
+git config --global --unset http.proxy
+git config --global --unset https.proxy
+```
+
+- SSH检查
+```git
+ls -al ~/.ssh
+```
 
 - SSH生成
-> $ ssh-keygen -t rsa -b 4096 -C "lvqiliya@163.com"
+```git
+ssh-keygen -t rsa -b 4096 -C "lvqiliya@gmail.com"
+```
 
-- SSh验证
+- 添加SSH到ssh-agent
+```git
+eval $(ssh-agent -s)
+ssh-add ~/.ssh/id_rsa
+```
+
+- SSH验证
+```git
+ssh -T git@github.com
+```
 > $ ssh -T git@github.com
 
 ## TortoiseGit配置
