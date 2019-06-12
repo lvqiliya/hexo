@@ -6,17 +6,24 @@ categories: 白科技
 ---
 本文是关于 Redis 的学习笔记
 <!--more-->
-# Redis 安装
+## Redis 安装
+
 采用 Docker 方式
+
 ```shell
-$ docker pull redis
-$ docker run --name myredis -d -p6379:6379 redis
-$ docker exec -it myredis redis-cli
+docker pull redis
+docker run --name myredis -d -p6379:6379 redis
+docker exec -it myredis redis-cli
 ```
-# Redis 基础数据结构
+
+## Redis 基础数据结构
+
 Redis共有5种基础数据结构，分别为：string (字符串)、list (列表)、set (集合)、hash (哈希) 和 zset (有序集合)。Redis所有的数据都是以键值对存在。
-## string (字符串)
-**键值对**
+
+### string (字符串)
+
+- 键值对
+
 ```shell
 > set name Andy
 ok
@@ -29,7 +36,9 @@ ok
 > get name
 (nil)
 ```
-**批量键值对**
+
+- 批量键值对
+
 ```shell
 > set name1 andy
 OK
@@ -45,9 +54,11 @@ OK
 2) "BOB"
 3) "CINDY"
 ```
-**过期与 set 命令扩展**
+
+- 过期与 set 命令扩展
 
 `expire` 这个功能常用来控制缓存的失效时间，`setex` 用来创建数据并控制缓存失效时间，`setnx` 创建不存在的数据。
+
 ```shell
 > expire name1 1 # 1s后失效name1
 (integer) 1
@@ -64,9 +75,11 @@ OK
 > get name
 "cindy"
 ```
-**计数**
+
+- 计数
 
 如果 value 是一个整数，可以进行自增操作。
+
 ```shell
 > set age 10
 OK
@@ -78,7 +91,10 @@ OK
 (integer) 9
 ```
 
-## list (列表)
-## set (集合)
-## hash (哈希)
-## zset (有序集合)
+### list (列表)
+
+### set (集合)
+
+### hash (哈希)
+
+### zset (有序集合)

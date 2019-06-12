@@ -44,7 +44,7 @@ categories: 白科技
 
 **spring-boot-starter**-web:
 
-    spring-boot-starter是 Spring Boot 场景启动器；spring-boot-starter-web 帮我们自动导入Web应用所需要的依赖
+spring-boot-starter是 Spring Boot 场景启动器；spring-boot-starter-web 帮我们自动导入Web应用所需要的依赖
 
 Spring Boot 将所有的功能场景抽取出来，做成一个个 starter，只需要在项目中引入这些 starter，相关场景的依赖都会导入进来。
 
