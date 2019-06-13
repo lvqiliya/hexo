@@ -463,6 +463,198 @@ System.out.println(k.equals(i));
 
 ### String
 
+- 字符串的不可变性
+
+从概念上将，Java 字符串就是 Unicode 字符序列。String 类没有提供用于修改字符串的方法，如果想要修改字符串的内容，用拼接的方式实现。
+
+由于无法修改 Java 字符串中的字符，所以在 Java 文档中将 String 类对象称为**不可变字符串**。它有一个优点，编译器可以让字符串共享。可以想象将各种字符串存放在公共存储池中，字符串变量指向存储池相应的位置。如果复制一个字符串变量，原始字符串与复制的字符串共享相同的字符。关于共享问题还有补充，只有字符串常量是共享的，而 + 或者 substring 等操作产生的结果并不是共享的。
+
+> 值得注意的是，如果执行代码 `String sub = s.substring(0);` 和 `Sting sub = s.subtring(0, s.length());`，sub 实际上指向的是 s 指向的内存地址，也即是它们是共享的。具体原因见 substring 原理分析。
+
+以上为概念。接下来看源码：
+
+```java
+// JDK 1.8
+
+/** The value is used for character storage. */
+private final char value[];
+
+/** Cache the hash code for the string */
+private int hash; // Default to 0
+```
+
+首先 String 类中声明了一个**不可变的字符数组**用于存储字符串，同时声明一个整型用来作为 hash code 的缓存，具体分析见源码分析部分。可以看到 value[] 是私有变量，且 String 类中没有提供类似 setValue() 修改字符串的方法，所以一旦字符串被定义，它本身是无法被修改的。
+
+- JDK 6 和 JDK 7 中 substring 的原理及区别
+
+从 substring 的用法切入。无论是 JDK 6 或者 JDK 7+，substring 的方法只有两种:
+
+```java
+// 给定起始偏移量
+public String substring(int beginIndex) { …… }
+
+// 给定起始偏移量和终止偏移量
+public String substring(int beginIndex, int endIndex) { …… }
+```
+
+基于 JDK 1.8 中 String 的构造函数，对以上两个方法进行设想，那么应该如何实现呢？
+
+```java
+public String(char value[], int offset, int count) {
+    if (offset < 0) {
+        throw new StringIndexOutOfBoundsException(offset);
+    }
+    if (count <= 0) {
+        if (count < 0) {
+            throw new StringIndexOutOfBoundsException(count);
+        }
+        if (offset <= value.length) {
+            this.value = "".value;
+            return;
+        }
+    }
+    // Note: offset or count might be near -1>>>1.
+    if (offset > value.length - count) {
+        throw new StringIndexOutOfBoundsException(offset + count);
+    }
+    this.value = Arrays.copyOfRange(value, offset, offset+count);
+}
+```
+
+```java
+/**
+ * 实现前提
+ * 显然，参数的取值范围是 0 <= beginIndex <= value.length
+ * <p>
+ * 针对它进行判断：
+ * 若小于 0 ，则抛出 StringIndexOutOfBoundsException
+ * 若大于 value.lenth，同样抛出 StringIndexOutOfBoundsException
+ * 所有异常情况已经考虑完全，调用 String 的构造方法完成本方法的实现
+ *
+ * @param beginIndex
+ * @return
+ */
+public String substring(int beginIndex) {
+    if (beginIndex < 0) {
+        throw new StringIndexOutOfBoundsException(beginIndex);
+    }
+    if (beginIndex > value.length) {
+        throw new StringIndexOutOfBoundsException(value.length - beginIndex);
+    }
+    return new String(value, beginIndex, value.length - beginIndex);
+}
+
+// 代码进行优化后，最终如下
+public String substring(int beginIndex) {
+    if (beginIndex < 0) {
+        throw new StringIndexOutOfBoundsException(beginIndex);
+    }
+    int len = value.length - beginIndex;
+    if (len < 0) {
+        throw new StringIndexOutOfBoundsException(len);
+    }
+    return beginIndex == 0 ? this : new String(value, beginIndex, len);
+}
+```
+
+```java
+/**
+ * 实现前提
+ * 因为有两个参数，除开自身的取值范围之外还有一个条件
+ * 0 <= beginIndex <= value.length
+ * 0 <= endIndex <= value.length
+ * beginIndex <= endIndex
+ * 在进行判断的时候要善于利用第三个条件
+ * <p>
+ * 针对它们分别进行判断：
+ * 若 beginIndex 小于 0 ，则抛出 StringIndexOutOfBoundsException
+ * 若 endIndex 大于 value.length ，则抛出 StringIndexOutOfBoundsException
+ * 若 int len = endIndex - begin 小于 0，抛出异常 StringIndexOutOfBoundsException
+ * 所有异常情况已经考虑完全，调用 String 的构造方法完成本方法的实现
+ *
+ * @param beginIndex
+ * @param endIndex
+ * @return
+ */
+public String substring(int beginIndex, int endIndex) {
+    if (beginIndex < 0) {
+        throw new StringIndexOutOfBoundsException(beginIndex);
+    }
+    if (endIndex > value.length) {
+        throw new StringIndexOutOfBoundsException(endIndex);
+    }
+    int len = endIndex - beginIndex;
+    if (len < 0) {
+        throw new StringIndexOutOfBoundsException(len);
+    }
+    return ((beginIndex == 0) && (endIndex == value.length)) ? this : new String(value, beginIndex, len);
+}
+```
+
+- replaceFirst、replaceAll、replace 区别
+
+```java
+/**
+ * Replaces the first substring of this string that matches the given <a
+ * href="../util/regex/Pattern.html#sum">regular expression</a> with the
+ * given replacement.
+ * ......
+ */
+public String replaceFirst(String regex, String replacement) {
+    return Pattern.compile(regex).matcher(this).replaceFirst(replacement);
+}
+```
+
+```java
+/**
+ * Replaces each substring of this string that matches the given <a
+ * href="../util/regex/Pattern.html#sum">regular expression</a> with the
+ * given replacement.
+ * ......
+ * Note that backslashes ({@code \}) and dollar signs ({@code $}) in the
+ * replacement string may cause the results to be different than if it were
+ * being treated as a literal replacement string;
+ * ......
+ */
+public String replaceAll(String regex, String replacement) {
+    return Pattern.compile(regex).matcher(this).replaceAll(replacement);
+}
+```
+
+```java
+/**
+ * Replaces each substring of this string that matches the literal target
+ * sequence with the specified literal replacement sequence.
+ * ......
+ */
+public String replace(CharSequence target, CharSequence replacement) {
+    return Pattern.compile(target.toString(), Pattern.LITERAL).matcher(this)
+            .replaceAll(Matcher.quoteReplacement(replacement.toString()));
+}
+
+public static String quoteReplacement(String s) {
+    if ((s.indexOf('\\') == -1) && (s.indexOf('$') == -1))
+        return s;
+    StringBuilder sb = new StringBuilder();
+    for (int i=0; i<s.length(); i++) {
+        char c = s.charAt(i);
+        if (c == '\\' || c == '$') {
+            sb.append('\\');
+        }
+        sb.append(c);
+    }
+    return sb.toString();
+}
+```
+
+- String 对“+”的重载、字符串拼接的几种方式和区别
+
+- String.valueOf 和 Integer.toString 的区别、
+
+- switch 对 String 的支持
+
+- 字符串池、常量池（运行时常量池、Class 常量池）、intern
+
 ### Java 关键字
 
 ### 集合类
