@@ -683,11 +683,330 @@ To be continued...
 
 - String 对“+”的重载、字符串拼接的几种方式和区别
 
-- String.valueOf 和 Integer.toString 的区别、
+首先利用 `+` 完成字符串拼接，编译并执行成功：
+
+```java
+// example 1
+System.out.println(("a" + "b") == "ab");
+
+// example 2
+String s1 = "1";
+String s2 = "2";
+String s = "12";
+System.out.println((s1 + s2) == s);
+```
+
+打印输出：
+
+```java
+true
+false
+```
+
+如果跟你预想中的结果不一样，可能你有一个知识点欠缺了。example 1 中是对**字符常量**进行 `+` 运算，example 2 中是对**字符串**进行运算。我们接着看 `.class` 文件结构：
+
+```class
+public class com.qly.Demo {
+  public com.qly.Demo();
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+       4: return
+
+  public static void main(java.lang.String[]);
+    Code:
+       0: ldc           #2                  // String ab
+       2: astore_1
+       3: ldc           #2                  // String ab
+       5: astore_2
+       6: getstatic     #3                  // Field java/lang/System.out:Ljava/io/PrintStream;
+       9: aload_1
+      10: aload_2
+      11: if_acmpne     18
+      14: iconst_1
+      15: goto          19
+      18: iconst_0
+      19: invokevirtual #4                  // Method java/io/PrintStream.println:(Z)V
+      22: ldc           #5                  // String 1
+      24: astore_3
+      25: ldc           #6                  // String 2
+      27: astore        4
+      29: ldc           #7                  // String 12
+      31: astore        5
+      33: getstatic     #3                  // Field java/lang/System.out:Ljava/io/PrintStream;
+      36: new           #8                  // class java/lang/StringBuilder
+      39: dup
+      40: invokespecial #9                  // Method java/lang/StringBuilder."<init>":()V
+      43: aload_3
+      44: invokevirtual #10                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      47: aload         4
+      49: invokevirtual #10                 // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      52: invokevirtual #11                 // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+      55: aload         5
+      57: if_acmpne     64
+      60: iconst_1
+      61: goto          65
+      64: iconst_0
+      65: invokevirtual #4                  // Method java/io/PrintStream.println:(Z)V
+      68: return
+}
+```
+
+第 0 行并未进行相加操作，而是通过编译器优化成一个 `String ab`；第 22、25、29 行分别初始化了三个字符串，在调用 `+` 的时候，通过 36 行可以看到是 new 了一个 **StringBuilder** 对象，然后在 44 行调用了 `append()` 方法。
+
+总结来说，两个字符常量用 `+` 操作的时候，编译器会预编译成一个字符常量；两个字符串用 `+` 操作的时候，会先 new 一个 StringBuilder，然后调用 `append()` 方法完成字符串的拼接。
+
+除开直接使用 `+` 对字符串进行拼接之外，还可以通过 concat、StringBuffer、StringBuilder 来达到效果。下面的代码分别展示其用法和效率：
+
+```java
+public static void main(String[] args) {
+    plus();
+    concat();
+    stringBuffer();
+    stringBuilder();
+}
+
+public static void plus() {
+    String result = "";
+    long start = System.currentTimeMillis();
+    for (int i = 0; i < 100000; i++) {
+        result += "a";
+    }
+    long end = System.currentTimeMillis();
+    System.out.println(end - start);
+}
+
+public static void concat() {
+    String result = "";
+    long start = System.currentTimeMillis();
+    for (int i = 0; i < 100000; i++) {
+        result = result.concat("a");
+    }
+    long end = System.currentTimeMillis();
+    System.out.println(end - start);
+}
+
+public static void stringBuffer() {
+    StringBuffer buffer = new StringBuffer();
+    long start = System.currentTimeMillis();
+    for (int i = 0; i < 1000000; i++) {
+        buffer.append("a");
+    }
+    long end = System.currentTimeMillis();
+    System.out.println(end - start);
+
+}
+
+public static void stringBuilder() {
+    StringBuilder builder = new StringBuilder();
+    long start = System.currentTimeMillis();
+    for (int i = 0; i < 1000000; i++) {
+        builder.append("a");
+    }
+    long end = System.currentTimeMillis();
+    System.out.println(end - start);
+}
+```
+
+输出结果：
+
+```java
+5685
+1190
+49
+22
+```
+
+针对以上内容做如下汇总：
+
+||+|concat|StringBuffer|StringBuilder|
+|-|-|-|-|-|
+|循环次数|十万|十万|百万|百万|
+|耗时|5685|1190|49|22|
+
+显然，`+` 的效率是最低的，StringBuilder 的效率是最高的。因为 StringBuffer 是线程安全的，同步会耗费一部分时间。
+
+concat 的原理是，在拼接字符串的时候，根据原字符串和字符串参数的长度申请一个字符数组用以存储新的字符串，也就是说每拼接一次就需要申请新的字符数组，十万次的拼接中 concat 需要十万次的扩容。
+
+StringBuilder 的原理是，在拼接字符串的时候对现有长度进行翻倍，十万次的拼接中只需要 log100000 < 17 次扩容。
+
+- String.valueOf 和 Integer.toString 的区别
+
+```java
+public static String toString(int i) {
+    if (i == Integer.MIN_VALUE)
+        return "-2147483648";
+    int size = (i < 0) ? stringSize(-i) + 1 : stringSize(i);
+    char[] buf = new char[size];
+    getChars(i, size, buf);
+    return new String(buf, true);
+}
+```
+
+这是 Integer 中的 toString 方法。首先会根据入参 i 来取一个 size 作为字符数组的长度，然后把 i 放到字符数组里面，再调用构造函数 String(char[] value, boolean share) 实例化 i 并返回。
+
+String 类中有大量的 valueOf() 方法进行重载，参数包括了基本数据类型和对象，基本数据类型分为 char、int 和其他。对于 char 来说大多数都是字符数组，而 byte 和 short 作为参数时会默认转化为 int 类型，其他类型就调用其本身。
 
 - switch 对 String 的支持
 
+写一个简单的 switch 判断：
+
+```java
+public static void main(String[] args) {
+    String s = "hello";
+    switch (s) {
+        case "hello":
+            System.out.println("world");
+            break;
+        default:
+            break;
+    }
+}
+```
+
+输出结果：
+
+```java
+world
+```
+
+在 terminal 中执行 `javap -c Demo.class` 并观察：
+
+```class
+public class com.qly.Demo {
+  public com.qly.Demo();
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+       4: return
+
+  public static void main(java.lang.String[]);
+    Code:
+       0: ldc           #2                  // String hello
+       2: astore_1
+       3: aload_1
+       4: astore_2
+       5: iconst_m1
+       6: istore_3
+       7: aload_2
+       8: invokevirtual #3                  // Method java/lang/String.hashCode:()I
+      11: lookupswitch  { // 1
+              99162322: 28
+               default: 39
+          }
+      28: aload_2
+      29: ldc           #2                  // String hello
+      31: invokevirtual #4                  // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      34: ifeq          39
+      37: iconst_0
+      38: istore_3
+      39: iload_3
+      40: lookupswitch  { // 1
+                     0: 60
+               default: 71
+          }
+      60: getstatic     #5                  // Field java/lang/System.out:Ljava/io/PrintStream;
+      63: ldc           #6                  // String world
+      65: invokevirtual #7                  // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      68: goto          71
+      71: return
+}
+```
+
+推测，在第 8 行调用 String.hashCode() 方法。接下来反编译 Demo.class：
+
+```java
+public static void main(String[] args) {
+    String s = "hello";
+    byte var3 = -1;
+    switch(s.hashCode()) {
+    case 99162322:
+        if (s.equals("hello")) {
+            var3 = 0;
+        }
+    default:
+        switch(var3) {
+        case 0:
+            System.out.println("world");
+        default:
+        }
+    }
+}
+```
+
+显然，switch 调用了String.hashCode()，当 hashCode 一致时，对字符串进行 equals 比较。之所以这么做是因为不同的字符串通过执行 String.hashCode() 方法可能会计算出相同的值。最后进入switch-byte这个结构中，则完成整个逻辑。
+
+总的说来，switch 支持字符串是利用了字符串的 hashCode，本质上还是 switch-int，经过 equals 方法处理 hashCode 可能会重复的问题之后，利用 switch-byte 完成精确匹配。
+
 - 字符串池、常量池（运行时常量池、Class 常量池）、intern
+
+Class（Java类）文件中除了有类的版本、字段、方法、接口描述等信息外，还有一项信息是常量池（Constant Pool Table），用于存放编译期生成的**各种字面量**和**符号引用**，这个池子就是 Class 常量池。而这一部分内容将在类加载后存放到方法区中的运行时常量池中。运行期间可以将新的常量放入池中，即 String 类中的 intern() 方法。
+
+```java
+/**
+ * Returns a canonical representation for the string object.
+ * <p>
+ * A pool of strings, initially empty, is maintained privately by the
+ * class {@code String}.
+ * <p>
+ * When the intern method is invoked, if the pool already contains a
+ * string equal to this {@code String} object as determined by
+ * the {@link #equals(Object)} method, then the string from the pool is
+ * returned. Otherwise, this {@code String} object is added to the
+ * pool and a reference to this {@code String} object is returned.
+ * <p>
+ * It follows that for any two strings {@code s} and {@code t},
+ * {@code s.intern() == t.intern()} is {@code true}
+ * if and only if {@code s.equals(t)} is {@code true}.
+ * <p>
+ * All literal strings and string-valued constant expressions are
+ * interned. String literals are defined in section 3.10.5 of the
+ * <cite>The Java&trade; Language Specification</cite>.
+ *
+ * @return  a string that has the same contents as this string, but is
+ *          guaranteed to be from a pool of unique strings.
+ */
+public native String intern();
+```
+
+字符串池是由类私下维护的，它最开始是空的。
+
+当 intern() 被调用时，如果字符串池中已经包含一个字符串与对象引用所指的字符串相等（通过 equals() 方法比较），那么从字符串池返回已存在的字符串。否则对象引用的字符串应该被添加到字符串池中，并且返回这个字符串的引用。
+
+```java
+String s = "abc";
+String s1 = "abc01";
+String s2 = s + "01";
+String s3 = new String("abc01");
+String s4 = s3.intern();
+System.out.println(s1 == s2);
+System.out.println(s1 == s3);
+System.out.println(s1 == s4);
+System.out.println(s2 == s3);
+System.out.println(s2 == s4);
+System.out.println(s3 == s4);
+System.out.println(System.identityHashCode(s1));
+System.out.println(System.identityHashCode(s2));
+System.out.println(System.identityHashCode(s3));
+System.out.println(System.identityHashCode(s4));
+```
+
+输出结果：
+
+```java
+false
+false
+true
+false
+false
+false
+460141958
+1163157884
+1956725890
+460141958
+```
+
+分析：s1 是字符串常量，保存至字符串池中；s2 实质上是调用了 StringBuilder，实例化的对象保存在堆中；s3 是直接 new 了一个 String 对象，同理保存在堆中。至此三个变量的地址都不相同。s4 等于 s3.intern()，根据前面的说明做推理。字符串池目前已经保存了一个字符串 s1，当 s3 调用 intern() 方法时，s3 所指的字符串 “abc01” ——它目前存在堆中——与字符串池中的 s1 进行 equals，发现相等，那么返回 s1 给 s4，即 s1 和 s4 指向同一个对象。
 
 ### Java 关键字
 
