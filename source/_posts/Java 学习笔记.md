@@ -595,10 +595,14 @@ public String substring(int beginIndex, int endIndex) {
 
 ```java
 /**
+ * 使用给定 replacement 替换此字符串匹配给定正则表达式 regex 的第一个子字符串
  * Replaces the first substring of this string that matches the given <a
  * href="../util/regex/Pattern.html#sum">regular expression</a> with the
  * given replacement.
  * ......
+ * @param regex
+ * @param replacement
+ * @return
  */
 public String replaceFirst(String regex, String replacement) {
     return Pattern.compile(regex).matcher(this).replaceFirst(replacement);
@@ -607,6 +611,7 @@ public String replaceFirst(String regex, String replacement) {
 
 ```java
 /**
+ * 使用给定 replacement 替换此字符串匹配给定正则表达式 regex 的所有子字符串
  * Replaces each substring of this string that matches the given <a
  * href="../util/regex/Pattern.html#sum">regular expression</a> with the
  * given replacement.
@@ -615,6 +620,9 @@ public String replaceFirst(String regex, String replacement) {
  * replacement string may cause the results to be different than if it were
  * being treated as a literal replacement string;
  * ......
+ * @param regex
+ * @param replacement
+ * @return
  */
 public String replaceAll(String regex, String replacement) {
     return Pattern.compile(regex).matcher(this).replaceAll(replacement);
@@ -623,9 +631,13 @@ public String replaceAll(String regex, String replacement) {
 
 ```java
 /**
+ * 使用给定字符序列 replacement 替换此字符串匹配给定字符序列 target 的所有子字符串
  * Replaces each substring of this string that matches the literal target
  * sequence with the specified literal replacement sequence.
  * ......
+ * @param target
+ * @param replacement
+ * @return
  */
 public String replace(CharSequence target, CharSequence replacement) {
     return Pattern.compile(target.toString(), Pattern.LITERAL).matcher(this)
@@ -645,7 +657,29 @@ public static String quoteReplacement(String s) {
     }
     return sb.toString();
 }
+
+/**
+ * 用 newChar 替换字符串中出现的所有 oldChar 字符，并返回替换后的新字符串
+ * Returns a string resulting from replacing all occurrences of
+ * {@code oldChar} in this string with {@code newChar}.
+ * ......
+ * @param   oldChar   the old character.
+ * @param   newChar   the new character.
+ * @return
+ */
+public String replace(char oldChar, char newChar) { ... }
 ```
+
+|              | 参数 1              | 内容说明   | 参数 2                   | 内容说明 |
+| ------------ | ------------------- | ---------- | ------------------------ | -------- |
+| replaceFirst | String regex        | 正则表达式 | String replacement       | 字符串   |
+| replaceAll   | String regex        | 正则表达式 | String replacement       | 字符串   |
+| replace      | CharSequence target | 字符序列   | CharSequence replacement | 字符序列 |
+| replace      | char oldChar        | 字符       | char newChar             | 字符     |
+
+由上表可知，replaceFirst 和 replaceAll 应该接收正则表达式然后进行匹配，然后将 replacement 替换被匹配的子串，返回一个新的字符串；而 replace 则是接收字符或者字符串，然后将后者替换被匹配的子串。
+
+To be continued...
 
 - String 对“+”的重载、字符串拼接的几种方式和区别
 
