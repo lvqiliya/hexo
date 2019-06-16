@@ -1008,11 +1008,45 @@ false
 
 分析：s1 是字符串常量，保存至字符串池中；s2 实质上是调用了 StringBuilder，实例化的对象保存在堆中；s3 是直接 new 了一个 String 对象，同理保存在堆中。至此三个变量的地址都不相同。s4 等于 s3.intern()，根据前面的说明做推理。字符串池目前已经保存了一个字符串 s1，当 s3 调用 intern() 方法时，s3 所指的字符串 “abc01” ——它目前存在堆中——与字符串池中的 s1 进行 equals，发现相等，那么返回 s1 给 s4，即 s1 和 s4 指向同一个对象。
 
-### Java 关键字
+### Java 关键字原理及用法
+
+- transient
+- instanceof
+- final
+- static
+- volatile
+- synchronized
+- const
 
 ### 集合类
 
+常用集合类的使用、ArrayList 和 LinkedList 和 Vector 的区别 、SynchronizedList 和 Vector 的区别、HashMap、HashTable、ConcurrentHashMap 区别、
+
+Set 和 List 区别？Set 如何保证元素不重复？
+
+Java 8 中 stream 相关用法、apache 集合处理工具类的使用、不同版本的 JDK 中 HashMap 的实现的区别以及原因
+
+Collection 和 Collections 区别
+
+Arrays.asList 获得的 List 使用时需要注意什么
+
+Enumeration 和 Iterator 区别
+
+fail-fast 和 fail-safe
+
+CopyOnWriteArrayList、ConcurrentSkipListMap
+
 ### 枚举
+
+枚举的用法、枚举的实现、枚举与单例、Enum 类
+
+Java 枚举如何比较
+
+switch 对枚举的支持
+
+枚举的序列化如何实现
+
+枚举的线程安全性问题
 
 ### IO
 
