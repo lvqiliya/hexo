@@ -202,9 +202,11 @@ indexOf(String, int)
 
 重载和重写都是 Java 多态性的不同表现。重载是一个类的多态性表现，重写则是父类与子类之间多态性表现。
 
-Java的继承与实现
+- Java的继承与实现
 
-“is-a”关系是继承的一个明显特征
+“is-a”关系是继承的一个明显特征。
+
+子类不能直接访问超类的私有域。如果超类没有定义无参构造函数，子类必须显示地调用超类的构造函数。
 
 构造函数与默认构造函数
 
@@ -269,6 +271,19 @@ $$0.8*2 = 1.6$$
 
 至此出现了无限循环。
 
+- 数据类型之间的转换
+
+> 实线表示无信息丢失的转换，虚线表示可能有精度损失的转换。
+> byte ——> short ——> int ——> long
+> char ——> int ——> double
+> int --> float
+> long --> float, long --> double
+> 计算原则如下：
+> 有 double 都转成 double 计算
+> 否则，有 float 都转成 float 计算
+> 否则，有 long 都转成 long 计算
+> 否则，都转成 int 类型
+
 ### 自动拆装箱
 
 - 包装类型和基本类型
@@ -292,6 +307,51 @@ int n = list.get(0);
 int n = list.get(0).intValue();
 // 这便是自动拆箱
 ```
+
+值得注意的是装箱和拆箱是编译器认可的，而不是虚拟机。编译器在生成类的字节码时，插入必要的方法调用。虚拟机只是执行这些字节码。
+
+```java
+public class Demo {
+    public static void main(String[] args) {
+        ArrayList<Integer> list = new ArrayList<>();
+        list.add(1);
+        int i = list.get(0);
+    }
+}
+```
+
+以上代码先后实现了装箱操作和拆箱操作，我们来看看类文件：
+
+```class
+public class com.qly.Demo {
+  public com.qly.Demo();
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+       4: return
+
+  public static void main(java.lang.String[]);
+    Code:
+       0: new           #2                  // class java/util/ArrayList
+       3: dup
+       4: invokespecial #3                  // Method java/util/ArrayList."<init>":()V
+       7: astore_1
+       8: aload_1
+       9: iconst_1
+      10: invokestatic  #4                  // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+      13: invokevirtual #5                  // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+      16: pop
+      17: aload_1
+      18: iconst_0
+      19: invokevirtual #6                  // Method java/util/ArrayList.get:(I)Ljava/lang/Object;
+      22: checkcast     #7                  // class java/lang/Integer
+      25: invokevirtual #8                  // Method java/lang/Integer.intValue:()I
+      28: istore_2
+      29: return
+}
+```
+
+显然，在第 10 行编译器调用了 `Integer.valueOf()`，在 25 行编译器调用了 `Integer.intValue()`。
 
 - Integer 的缓存机制
 
@@ -833,6 +893,20 @@ StringBuilder 的原理是，在拼接字符串的时候对现有长度进行翻
 - String.valueOf 和 Integer.toString 的区别
 
 ```java
+/**
+ * Returns a {@code String} object representing the
+ * specified integer. The argument is converted to signed decimal
+ * representation and returned as a string, exactly as if the
+ * argument and radix 10 were given as arguments to the {@link
+ * #toString(int, int)} method.
+ *
+ * 返回一个表示指定整数的字符串。
+ * 参数被转换成带符号的十进制表示，并以字符串返回。
+ * 准确来说就像是这个参数和进制 10 同时作为 Integer.toString(int i, int radix) 方法的参数一样。
+ *
+ * @param   i   an integer to be converted.
+ * @return  a string representation of the argument in base&nbsp;10.
+ */
 public static String toString(int i) {
     if (i == Integer.MIN_VALUE)
         return "-2147483648";
@@ -1010,13 +1084,13 @@ false
 
 ### Java 关键字原理及用法
 
-- transient
-- instanceof
-- final
-- static
-- volatile
-- synchronized
 - const
+- final
+- instanceof
+- static
+- synchronized
+- transient
+- volatile
 
 ### 集合类
 
