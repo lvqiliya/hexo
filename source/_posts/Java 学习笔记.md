@@ -208,6 +208,16 @@ indexOf(String, int)
 
 子类不能直接访问超类的私有域。如果超类没有定义无参构造函数，子类必须显示地调用超类的构造函数。
 
+设计继承的技巧：
+
+1. 将公共操作和域放在超类；
+2. 不要使用受保护的域；
+3. 使用继承实现 is-a 关系；
+4. 除非所有继承的方法都有意义，否则不要使用继承；
+5. 在重写方法时，不要改变预期行为；
+6. 使用多态，而非类型信息；
+7. 不要过多的使用反射。
+
 构造函数与默认构造函数
 
 构造函数与类同名，在构造某个类的对象时，构造函数便会运行，一遍将实例域初始化为所希望的状态。它总是伴随着 **new** 操作符的执行被调用。每个类都有至少一个构造函数，它的参数可以是 n >= 0 个，它没有返回值。
@@ -879,10 +889,10 @@ public static void stringBuilder() {
 
 针对以上内容做如下汇总：
 
-||+|concat|StringBuffer|StringBuilder|
-|-|-|-|-|-|
-|循环次数|十万|十万|百万|百万|
-|耗时|5685|1190|49|22|
+|          | +    | concat | StringBuffer | StringBuilder |
+| -------- | ---- | ------ | ------------ | ------------- |
+| 循环次数 | 十万 | 十万   | 百万         | 百万          |
+| 耗时     | 5685 | 1190   | 49           | 22            |
 
 显然，`+` 的效率是最低的，StringBuilder 的效率是最高的。因为 StringBuffer 是线程安全的，同步会耗费一部分时间。
 
@@ -1081,6 +1091,263 @@ false
 ```
 
 分析：s1 是字符串常量，保存至字符串池中；s2 实质上是调用了 StringBuilder，实例化的对象保存在堆中；s3 是直接 new 了一个 String 对象，同理保存在堆中。至此三个变量的地址都不相同。s4 等于 s3.intern()，根据前面的说明做推理。字符串池目前已经保存了一个字符串 s1，当 s3 调用 intern() 方法时，s3 所指的字符串 “abc01” ——它目前存在堆中——与字符串池中的 s1 进行 equals，发现相等，那么返回 s1 给 s4，即 s1 和 s4 指向同一个对象。
+
+### 反射
+
+能够分析类能力的程序称为反射（reflective）。反射可以用来做以下事情：
+
+1. 在运行中分析类的能力。
+2. 在运行中查看对象，例如，编写一个 toString 方法供所有类使用。
+3. 实现通用的数组操作代码。
+4. 利用 Method 对象。
+
+在程序运行期间，Java 运行时系统始终为所有的对象维护一个被称为运行时的类型标识。这个信息跟踪着每一个对象所属的类。虚拟机利用运行时类型信息选择相应的方法执行。
+
+我们可以通过专门的 Java 类访问这些信息。保存这些信息的类被称为 Class。一共有三种方法来获取 Class 类：
+
+```java
+// 调用 Object 类中的 getClass() 方法
+Pet pet;
+Class c1 = pet.getClass();
+
+// 调用 Class 类中的静态方法 forName()
+String className = "java.lang.String";
+Class c2 = Class.forName(className);
+
+// 直接 .class
+Class c3 = Date.class;
+Class c4 = int.class;
+// 请注意，一个 Class 对象实际上表示的是一个类型，而这个类型未必是一个类。虽然 int 是基础类型，但是 c4 是一个 Class 类型的对象。
+```
+
+还有一个很有用的方法 newInstance()，可以用来快速地创建一个类的实例。例如：
+
+```java
+String className = "java.lang.String";
+Class c2 = Class.forName(className);
+Object o = c2.newInstance();
+// 这一步操作是调用默认构造函数，如果没有默认构造函数则会报错。
+```
+
+- 利用反射分析类的能力
+
+在 java.lang.reflect 包中有三个类 Field、Method 和 Constructor 分别描述类的域、方法和构造器。
+
+|                     | 功能         | Field | Method | Constructor |
+| ------------------- | ------------ | ----- | ------ | ----------- |
+| getName()           | 获取名字     | V     | V      | V           |
+| getType()           | 获取类型     | V     | -      | -           |
+| getParameterTypes() | 获取参数类型 | -     | V      | V           |
+| getModifiers()      | 获取修饰符   | V     | V      | V           |
+
+Class 类中的 getFieds、getMethods 和 getConstructors 方法将分别返回类提供的 public 域、方法和构造器数组，这其中包括父类的公有成员。
+
+Class 类中的 getDeclaredFields、getDeclaredMethods 和 getDeclaredConstructors 方法分别返回类中声明的全部域、方法和构造器，这其中包括私有和受保护的成员，但不包括超类的成员。
+
+具体应用见下面代码：
+
+```java
+public class Demo {
+    public static void main(String[] args) {
+        String className = "java.lang.String";
+        try {
+            Class clazz = Class.forName(className);
+            Class superClazz = clazz.getSuperclass();
+            String modifier = Modifier.toString(clazz.getModifiers());
+            if (modifier.length() > 0) {
+                System.out.print(modifier + " ");
+            }
+            System.out.print("class " + className);
+            if (superClazz != null && superClazz != Object.class) {
+                System.out.print(" extends " + superClazz.getName());
+            }
+            Class[] impls = clazz.getInterfaces();
+            if (impls != null && impls.length > 0) {
+                System.out.print(" implements");
+                StringBuilder sb = new StringBuilder();
+                for (Class impl : impls) {
+                    sb.append(" ").append(impl).append(",");
+                }
+                System.out.print(sb.toString().substring(0, sb.length() - 1));
+            }
+            System.out.println(" {");
+            printConstructors(clazz);
+            System.out.println();
+            printMethod(clazz);
+            System.out.println();
+            printFields(clazz);
+            System.out.println("}");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void printConstructors(Class clazz) {
+        Constructor[] constructors = clazz.getDeclaredConstructors();
+        for (Constructor constructor : constructors) {
+            System.out.print("    ");
+            String modifier = Modifier.toString(constructor.getModifiers());
+            if (modifier.length() > 0) {
+                System.out.print(modifier + " ");
+            }
+            String name = constructor.getName();
+            System.out.print(name + "(");
+            Class[] parameters = constructor.getParameterTypes();
+            for (int i = 0; i < parameters.length; i++) {
+                if (i>0) {
+                    System.out.print(", ");
+                }
+                System.out.print(parameters[i].getName());
+            }
+            System.out.println(");");
+        }
+    }
+
+    private static void printMethod(Class clazz) {
+        Method[] methods = clazz.getDeclaredMethods();
+        for (Method method : methods) {
+            System.out.print("    ");
+            String modifier = Modifier.toString(method.getModifiers());
+            if (modifier.length() > 0) {
+                System.out.print(modifier + " ");
+            }
+            Class returnType = method.getReturnType();
+            String name = method.getName();
+            System.out.print(returnType + " " + name + "(");
+            Class[] parameterTypes = method.getParameterTypes();
+            for (int i = 0; i < parameterTypes.length; i++) {
+                if (i > 0) {
+                    System.out.print(", ");
+                }
+                System.out.print(parameterTypes[i].getName());
+            }
+            System.out.println(");");
+        }
+    }
+
+    private static void printFields(Class clazz) {
+        Field[] fields = clazz.getDeclaredFields();
+        for (Field field : fields) {
+            System.out.print("    ");
+            String modifier = Modifier.toString(field.getModifiers());
+            Class type = field.getType();
+            String name = field.getName();
+            if (modifier.length() > 0) {
+                System.out.println(modifier + " " + type.getName() + " " + name + ";");
+            }
+        }
+    }
+}
+```
+
+输出结果：
+
+```java
+public final class java.lang.String implements interface java.io.Serializable, interface java.lang.Comparable, interface java.lang.CharSequence {
+    public java.lang.String([B, int, int);
+    public java.lang.String([B, java.nio.charset.Charset);
+    public java.lang.String([B, java.lang.String);
+    public java.lang.String([B, int, int, java.nio.charset.Charset);
+    public java.lang.String([B, int, int, java.lang.String);
+    java.lang.String([C, boolean);
+    public java.lang.String(java.lang.StringBuilder);
+    public java.lang.String(java.lang.StringBuffer);
+    public java.lang.String([B);
+    public java.lang.String([I, int, int);
+    public java.lang.String();
+    public java.lang.String([C);
+    public java.lang.String(java.lang.String);
+    public java.lang.String([C, int, int);
+    public java.lang.String([B, int);
+    public java.lang.String([B, int, int, int);
+
+    public boolean equals(java.lang.Object);
+    public class java.lang.String toString();
+    public int hashCode();
+    public int compareTo(java.lang.String);
+    public volatile int compareTo(java.lang.Object);
+    public int indexOf(java.lang.String, int);
+    public int indexOf(java.lang.String);
+    public int indexOf(int, int);
+    public int indexOf(int);
+    static int indexOf([C, int, int, [C, int, int, int);
+    static int indexOf([C, int, int, java.lang.String, int);
+    public static class java.lang.String valueOf(int);
+    public static class java.lang.String valueOf(long);
+    public static class java.lang.String valueOf(float);
+    public static class java.lang.String valueOf(boolean);
+    public static class java.lang.String valueOf([C);
+    public static class java.lang.String valueOf([C, int, int);
+    public static class java.lang.String valueOf(java.lang.Object);
+    public static class java.lang.String valueOf(char);
+    public static class java.lang.String valueOf(double);
+    public char charAt(int);
+    private static void checkBounds([B, int, int);
+    public int codePointAt(int);
+    public int codePointBefore(int);
+    public int codePointCount(int, int);
+    public int compareToIgnoreCase(java.lang.String);
+    public class java.lang.String concat(java.lang.String);
+    public boolean contains(java.lang.CharSequence);
+    public boolean contentEquals(java.lang.CharSequence);
+    public boolean contentEquals(java.lang.StringBuffer);
+    public static class java.lang.String copyValueOf([C);
+    public static class java.lang.String copyValueOf([C, int, int);
+    public boolean endsWith(java.lang.String);
+    public boolean equalsIgnoreCase(java.lang.String);
+    public static transient class java.lang.String format(java.util.Locale, java.lang.String, [Ljava.lang.Object;);
+    public static transient class java.lang.String format(java.lang.String, [Ljava.lang.Object;);
+    public void getBytes(int, int, [B, int);
+    public class [B getBytes(java.nio.charset.Charset);
+    public class [B getBytes(java.lang.String);
+    public class [B getBytes();
+    public void getChars(int, int, [C, int);
+    void getChars([C, int);
+    private int indexOfSupplementary(int, int);
+    public native class java.lang.String intern();
+    public boolean isEmpty();
+    public static transient class java.lang.String join(java.lang.CharSequence, [Ljava.lang.CharSequence;);
+    public static class java.lang.String join(java.lang.CharSequence, java.lang.Iterable);
+    public int lastIndexOf(int);
+    public int lastIndexOf(java.lang.String);
+    static int lastIndexOf([C, int, int, java.lang.String, int);
+    public int lastIndexOf(java.lang.String, int);
+    public int lastIndexOf(int, int);
+    static int lastIndexOf([C, int, int, [C, int, int, int);
+    private int lastIndexOfSupplementary(int, int);
+    public int length();
+    public boolean matches(java.lang.String);
+    private boolean nonSyncContentEquals(java.lang.AbstractStringBuilder);
+    public int offsetByCodePoints(int, int);
+    public boolean regionMatches(int, java.lang.String, int, int);
+    public boolean regionMatches(boolean, int, java.lang.String, int, int);
+    public class java.lang.String replace(char, char);
+    public class java.lang.String replace(java.lang.CharSequence, java.lang.CharSequence);
+    public class java.lang.String replaceAll(java.lang.String, java.lang.String);
+    public class java.lang.String replaceFirst(java.lang.String, java.lang.String);
+    public class [Ljava.lang.String; split(java.lang.String);
+    public class [Ljava.lang.String; split(java.lang.String, int);
+    public boolean startsWith(java.lang.String, int);
+    public boolean startsWith(java.lang.String);
+    public interface java.lang.CharSequence subSequence(int, int);
+    public class java.lang.String substring(int);
+    public class java.lang.String substring(int, int);
+    public class [C toCharArray();
+    public class java.lang.String toLowerCase(java.util.Locale);
+    public class java.lang.String toLowerCase();
+    public class java.lang.String toUpperCase();
+    public class java.lang.String toUpperCase(java.util.Locale);
+    public class java.lang.String trim();
+
+    private final [C value;
+    private int hash;
+    private static final long serialVersionUID;
+    private static final [Ljava.io.ObjectStreamField; serialPersistentFields;
+    public static final java.util.Comparator CASE_INSENSITIVE_ORDER;
+}
+```
+
+- 在运行时使用反射分析对象
 
 ### Java 关键字原理及用法
 
