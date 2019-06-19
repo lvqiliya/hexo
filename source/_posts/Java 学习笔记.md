@@ -1469,6 +1469,101 @@ switch 对枚举的支持
 
 ### 异常
 
+- 异常分类
+
+所有异常都是由 java.lang.Throwable 继承而来，在下一层立即分解为两个分支：Error 和 Exception。
+
+Error 类层次结构描述了 Java 运行时系统的内部错误和资源耗尽错误。程序无法处理 Error。
+
+Exception 类层次是程序可以处理的异常。这个层次结构分解为两个分支：RuntimeException 和另外的异常。划分两个分支的规则是：由程序错误导致的异常属于 RuntimeException，如果出现 RuntimeException 异常，一定是代码有问题。而程序本身没有问题，但由像 I/O 错误这类问题导致的异常属于其他异常。
+
+> 派生于 RuntimeException 的异常包含：  
+> 错误的类型转换；  
+> 数组访问越界；  
+> 访问空指针；  
+> 算数异常。
+>
+> 不是派生于 RuntimeException 的异常包含：  
+> 试图在文件尾部后面读取数据；  
+> 试图打开一个不存在的文件；  
+> 试图根据给定字符串查找 Class 对象，这个字符串表示的类并不存在。
+
+Java 语言规范将派生于 Error 类或 RuntimeException 类的所有异常称为未检查异常。
+
+- 异常处理
+
+以下情况应该抛出异常：
+
+> 调用一个抛出已检查异常的方法，例如，FileInputStream 构造器。  
+> 程序运行过程中发现错误，并利用 throw 语句抛出一个已检查的异常。
+> 程序错误，例如数组下标越界。
+> Java 虚拟机和运行时库出现的内部错误。
+
+- 自定义异常
+
+定义一个派生于 Exception 的类，或者是派生于 Exception 子类的类。习惯上，定义的类应该包含两个构造器，一个是默认构造器，另一个是带有详细描述新的构造器（超类 Throwable 的 toString 方法将会打印出这些详细信息）。
+
+- 捕获异常
+
+try 块：用于捕获异常。其后可接零个或多个catch块，如果没有catch块，则必须跟一个finally块。
+
+catch 块：用于处理try捕获到的异常。
+
+finally 块：无论是否捕获或处理异常，finally块里的语句都会被执行。当在try块或catch块中遇到return语句时，finally语句块将在方法返回之前被执行。
+
+- 异常链
+
+异常链指将捕获的异常包装进一个新的异常中并重新抛出的异常处理方式。在 catch 子句中可以抛出一个异常，这样做的目的是改变异常的类型。如果开发了一个供其他程序员使用的子系统，那么，用于子系统故障的异常类型可能会产生多种解释。ServletException 就是这样的一个异常类型的例子。执行 servlet 的代码可能不想知道发生错误的细节原因，但是希望明确知道 servlet 是否出了问题。
+
+```java
+try {
+
+} catch (SQLException e) {
+    throw new ServletException("database error: " + e.getMessage);
+}
+```
+
+这里，ServletException 用了带有异常信息文本的构造器来构造。不过，还有一种更好的处理方法，并且将原始异常设置为新异常的“原因”：
+
+```java
+try {
+
+} catch (SQLException e) {
+    Throwable se = new ServletException("database error");
+    se.initCause(e);
+    throw se;
+}
+```
+
+当捕获到异常时，就可以使用 `Throwable e = se.getCause();` 重新得到原始异常信息。这种包装技术可以让用户抛出子系统中的高级异常，同时不会丢失原始异常的细节。
+
+- try-with-resources
+
+```java
+try (PrintWriter out = new PrintWriter("out.txt")) {
+    // work with out
+}
+```
+
+- finally 和 return 的执行顺序
+
+> 有三种情况下会执行 finally 子句：  
+> 代码没有抛出异常。  
+> 抛出一个在 catch 子句中捕获的异常。  
+> 代码抛出了一个异常，但不是由 catch 子句捕获的。
+>
+> 在以下4种特殊情况下，finally块不会被执行：  
+> 在finally语句块第一行发生了异常。  
+> 在前面的代码中用了System.exit(int)已退出程序。 exit是带参函数 ；若该语句在异常语句之后，finally会执行。  
+> 程序所在的线程死亡。  
+> 关闭CPU。
+>
+> 如果try语句里有return，返回的是try语句块中变量值。 详细执行过程如下：  
+> 如果有返回值，就把返回值保存到局部变量中。  
+> 执行jsr指令跳到finally语句里执行。  
+> 执行完finally语句后，返回之前保存在局部变量表里的值。  
+> 如果try，finally语句里均有return，忽略try的return，而使用finally的return。
+
 ### 时间处理
 
 ### 编码方式
