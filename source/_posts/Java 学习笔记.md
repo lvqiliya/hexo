@@ -1349,6 +1349,62 @@ public final class java.lang.String implements interface java.io.Serializable, i
 
 - 在运行时使用反射分析对象
 
+### 接口与内部类
+
+本章分为三点：接口、内部类、代理。接口主要是用来描述类具有什么功能，而并不给出每个功能的具体实现。一个类可以实现多个接口。
+
+- 接口
+
+接口不是类，而是对类的一组需求描述，这些类要遵从接口描述的统一格式进行定义。接口中所有的方法自动地属于 public。接口中可以定义常量，但绝不能含有实例域，也不能在接口中实现方法。
+
+让一个类实现一个接口，通常需要两个步骤：将类声明为实现给定的接口，即 implements 关键字；对接口中所有的方法进行定义。
+
+接口具有这些特性：接口不是类，不能用 new 运算符实例化一个接口。接口可以声明接口变量，但接口变量必须引用实现了接口的类对象。接口可以继承接口，接口也可以被扩展。接口可以包含常量。
+
+接口可以提供多重继承的大多数好处，同时还能避免多重继承的复杂性和低效性（To be continued ...）。
+
+- 对象克隆
+
+当拷贝一个变量时，原始变量与拷贝变量引用同一个对象，改变一个引用变量所引用对象的状态将会对另一个变量产生影响。如果创建一个对象的新的 copy，它的最初状态与 original 一样，但以后可以各自改变各自的状态，就使用 clone() 方法。但仅仅调用 Object 类中的 clone() 方法是**浅拷贝**，如果对象中只有数值和基本类型，这样的操作没有问题，但是如果在对象中包含子对象的引用，拷贝的结果会使得两个域引用同一个子对象。从结果来讲，浅拷贝并没有克隆包含在对象中的内部对象。为了实现**深拷贝**，必须克隆所有可变的实例域。clone() 默认时浅拷贝，下面时深拷贝的的示例：
+
+```java
+class Pet implements Cloneable {
+    private String name;
+    private Integer age;
+
+    ......
+
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+}
+
+class Cat implements Cloneable {
+    private Pet pet;
+    private String type;
+
+    ......
+
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        Cat copy = (Cat) super.clone();
+        copy.pet = (Pet) pet.clone();
+        return copy;
+    }
+}
+```
+
+> 重写 clone() 方法，首先该类必须 **implements Cloneable** 接口，然后重写。
+
+- 内部类
+
+内部类时定义在另一个类中的类。为何使用内部类，有以下三个原因：
+
+1. 内部类方法可以访问该类定义所在的作用域中的数据，包括私有数据。
+2. 内部类可以对同一个包中的其他类隐藏起来。
+3. 当想要定义一个回调函数且不想编写大量代码时，使用匿名内部类比较便捷。
+
 ### Java 关键字原理及用法
 
 - const
