@@ -1,5 +1,5 @@
 ---
-title: 开发环境配置
+title: Windows 系统配置
 date: 2017-12-26 22:53:26
 tags: [Java, Maven, Tomcat, Gradle, Git, TortoiseGit, IDEA, MySQL, Sublime Text3]
 categories: 白科技
@@ -367,3 +367,34 @@ F913BE58 42FEA319 F954EFDD AE881E0B
 > `%NODE_HOME%`  
 > `%NODE_HOME%\node_global`  
 > `%NODE_HOME%\node_modules`
+
+## 系统杂项
+
+### 照片查看器
+
+```shell
+#进入注册表
+计算机\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Photo Viewer\Capabilities\FileAssociations
+
+# 新建字符串
+jpg PhotoViewer.FileAssoc.Tiff
+png PhotoViewer.FileAssoc.Tiff
+```
+
+### U盘无法识别解决方法
+
+```shell
+# 在打开的cmd运行窗口里输入
+diskpart
+
+# 回车，然后输入
+list disk
+
+# 回车，查看目前电脑上所有的磁盘，如果U盘为2，那么输入以下命令将焦点指定到该磁盘
+select disk 1
+
+# 回车，然后再输入
+clean
+
+# 最后启动设备管理器进行格式化
+```
