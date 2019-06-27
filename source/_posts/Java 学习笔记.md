@@ -370,6 +370,38 @@ public class com.qly.Demo {
 > 对于基础数据类型来讲，它比较的是基础数据类型变量的**值**是否相等。相等返回 true，否则返回 false；  
 > 对于引用类型来讲，它比较的是引用类型变量的**地址值**是否相等。相等返回 true，否则返回 false。
 
+补充说明一下 `equals()` 方法。它的作用是判断两个两个对象是否相等，但是分为两种情况。
+
+```java
+// 未重写时，调用 Object 类中的方法。它使用的是 == 来判断两个对象的地址是否相同。
+public boolean equals(Object obj) { return (this == obj); }
+
+// 已重写时，例如 String 类中的方法。它首先判断地址，然后判断类型，最后比较内容。
+@Override
+public boolean equals(Object obj) {
+    if (this == obj) {
+        return true;
+    }
+    if (obj instanceof String) {
+        String objString = (String) obj;
+        int n = value.length;
+        if (n == objString.length()) {
+            char[] v1 = value;
+            char[] v2 = objString.value;
+            int i = 0;
+            while (n-- != 0) {
+                if (v1[i] != v2[i]) {
+                    return false;
+                }
+                i++;
+            }
+            return true;
+        }
+    }
+    return false;
+}
+```
+
 接下来说明 Integer 的缓存机制，直接看源码：
 
 ```java
