@@ -1621,6 +1621,89 @@ try (PrintWriter out = new PrintWriter("out.txt")) {
 
 ### 什么是线程，与进程的区别
 
+#### Thread 和 Runnable 两者的关系
+
+Runnable 接口中只有一个方法 run()
+
+```java
+@FunctionalInterface
+public interface Runnable {
+    public abstract void run();
+}
+```
+
+Thread 类中实现了 Runnable 接口
+
+```java
+public class Thread implements Runnable {
+    private Runnable target;
+
+    // 重点在于 this.target = target
+    public Thread(Runnable target) {
+        init(null, target, "Thread-" + nextThreadNum(), 0);
+    }
+
+    /**
+     * Causes this thread to begin execution;
+     * the Java Virtual Machine calls the run method of this thread.
+     */
+    public void start()
+
+    @Override
+    public void run() {
+        if (target != null) {
+            target.run();
+        }
+    }
+}
+```
+
+现在给定一个类 MyThread，使其实现 Runnable 接口并重写 run() 方法，那么它们之间的联系就如同下图一样:
+![Thread & Runnable](/images/java/Thread-Runnable1.png)
+
+根据上图及代码思考，实现多线程的过程如下：
+
+1. 初始化一个 Thread 类，并传入一个参数为 Runnable 的对象（带参数的构造方法）；
+2. 这个 Runnable 对象被 Thread 类中的 target 参数保存；
+3. 调用 start() 方法，让线程开始执行，JVM 会调用该线程的 run() ；
+4. 线程的中的 run() 方法实际上调用的是 Runnable 子类对象重写的 run() 方法。
+
+多线程开发的本质实际上是**多个线程**可以进行对**同一资源**的抢占。Thread 主要描述多个线程，Runnable 描述资源的处理。
+
+![Thread & Runnable](/images/java/Thread-Runnable2.png)
+
+#### Thread、Runnable 和 Callable 三者的关系
+
+Runnable 有一个缺点——没有返回值。java.util.concurrent.Callable 解决了这个问题。
+
+```java
+@FunctionalInterface
+public interface Callable<V> {
+    V call() throws Exception;
+}
+```
+
+实现 Callable 接口的时候可以设置一个泛型，该泛型即是返回数据类型，它可以避免向下转型所带来的隐患。但是目前有一个问题：多线程必须使用 Thread.start()，这意味着传入的参数必须是 Runnable 的实现类，而 Callable 接口并不是 Runnable 接口的子类！所以需要另外一个类——FutureTask——把这几个接口联系起来。
+
+```java
+public interface RunnableFuture<V> extends Runnable, Future<V> {
+    void run();
+}
+
+public class FutureTask<V> implements RunnableFuture<V> {
+    public FutureTask(Callable<V> callable) {
+        if (callable == null)
+            throw new NullPointerException();
+        this.callable = callable;
+        this.state = NEW;       // ensure visibility of callable
+    }
+}
+```
+
+很明显：FutureTask 接口实现了 RunnableFuture 接口，而 RunnableFuture 接口继承了 Runnable 和 Future，同时 FutureTask 的构造方法可以传入 Callable 对象作为参数。那么要用 Callable 来实现多线程只需要 `new Thread(new Future<V>(Callable<V>)).start()` 即可。它们之间的关系见下图：
+
+![Thread & Runnable & Callable](/images/java/Thread-Runnable-Callable1.png)
+
 ### 线程池
 
 ### 线程安全
