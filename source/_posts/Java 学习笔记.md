@@ -1615,6 +1615,126 @@ try (PrintWriter out = new PrintWriter("out.txt")) {
 9. HashSet
 10. LinkedHashSet & TreeSet
 
+ArrayList
+
+```java
+public class ArrayList<E> extends AbstractList<E>
+        implements List<E>, RandomAccess, Cloneable, java.io.Serializable
+{
+    private static final long serialVersionUID = 8683452581122892189L;
+
+    // 默认初始容量为 10，后面会用到这个值
+    private static final int DEFAULT_CAPACITY = 10;
+
+    // 用于空实例的共享空数组实例
+    private static final Object[] EMPTY_ELEMENTDATA = {};
+
+    // 用于默认大小的空实例的共享空数组实例
+    // 设计师将其与 EMPTY_ELEMENTDATA 区分开，它可以在第一个元素添加的时候知道增加多少容量
+    private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
+
+    // 存储 ArrayList 元素的数组缓冲区
+    // 任何空 ArrayList 被定义为 elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA，那么当第一个元素添加的时候，默认扩容 DEFAULT_CAPACITY
+    transient Object[] elementData;
+
+    // 数组的大小
+    private int size;
+
+    // 构造函数 1：构造具有指定初始容量的空列表
+    public ArrayList(int initialCapacity) {
+        if (initialCapacity > 0) {
+            this.elementData = new Object[initialCapacity];
+        } else if (initialCapacity == 0) {
+            this.elementData = EMPTY_ELEMENTDATA;
+        } else {
+            throw new IllegalArgumentException("Illegal Capacity: "+
+                                               initialCapacity);
+        }
+    }
+
+    // 构造函数 2：构造一个容量为 10 的空列表
+    public ArrayList() {
+        this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
+    }
+
+    // 构造函数 3：构造一个指定集合的元素的列表，按集合的迭代器返回元素的顺序排列。
+    public ArrayList(Collection<? extends E> c) {
+        elementData = c.toArray();
+        if ((size = elementData.length) != 0) {
+            // c.toArray might (incorrectly) not return Object[] (see 6260652)
+            if (elementData.getClass() != Object[].class)
+                elementData = Arrays.copyOf(elementData, size, Object[].class);
+        } else {
+            // replace with empty array.
+            this.elementData = EMPTY_ELEMENTDATA;
+        }
+    }
+
+    // 应用程序可以调用此方法来最小化 ArrayList 实例的存储。
+    public void trimToSize() {
+        modCount++;
+        if (size < elementData.length) {
+            elementData = (size == 0)
+              ? EMPTY_ELEMENTDATA
+              : Arrays.copyOf(elementData, size);
+        }
+    }
+
+    // 增加 ArrayList 实例的容量，如果必要的话，确保它至少可以容纳由 minCapacity 参数指定数量的元素。
+    public void ensureCapacity(int minCapacity) {
+        int minExpand = (elementData != DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
+            // any size if not default element table
+            ? 0
+            // larger than default for default empty table. It's already
+            // supposed to be at default size.
+            : DEFAULT_CAPACITY;
+
+        if (minCapacity > minExpand) {
+            ensureExplicitCapacity(minCapacity);
+        }
+    }
+
+    private static int calculateCapacity(Object[] elementData, int minCapacity) {
+        if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA) {
+            return Math.max(DEFAULT_CAPACITY, minCapacity);
+        }
+        return minCapacity;
+    }
+
+    private void ensureCapacityInternal(int minCapacity) {
+        ensureExplicitCapacity(calculateCapacity(elementData, minCapacity));
+    }
+
+    private void ensureExplicitCapacity(int minCapacity) {
+        modCount++;
+
+        // overflow-conscious code
+        if (minCapacity - elementData.length > 0)
+            grow(minCapacity);
+    }
+
+    private void grow(int minCapacity) {
+        // overflow-conscious code
+        int oldCapacity = elementData.length;
+        int newCapacity = oldCapacity + (oldCapacity >> 1);
+        if (newCapacity - minCapacity < 0)
+            newCapacity = minCapacity;
+        if (newCapacity - MAX_ARRAY_SIZE > 0)
+            newCapacity = hugeCapacity(minCapacity);
+        // minCapacity is usually close to size, so this is a win:
+        elementData = Arrays.copyOf(elementData, newCapacity);
+    }
+
+    private static int hugeCapacity(int minCapacity) {
+        if (minCapacity < 0) // overflow
+            throw new OutOfMemoryError();
+        return (minCapacity > MAX_ARRAY_SIZE) ?
+            Integer.MAX_VALUE :
+            MAX_ARRAY_SIZE;
+    }
+}
+```
+
 ## Java 并发编程
 
 ### 并发与并行
