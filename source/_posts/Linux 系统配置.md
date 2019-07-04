@@ -105,3 +105,27 @@ sudo usermod -aG docker qly
 # 将 Docker 配置为在启动时启动
 sudo systemctl enable docker
 ```
+
+## Zsh
+
+安装 zsh 并使用 oh-my-zsh 配置
+
+```shell
+# 下载 zsh
+sudo apt-get install -y zsh
+
+# 下载 oh-my-zsh，下列任一方式即可
+# via curl
+sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+# via wget
+sh -c "$(wget https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh -O -)"
+
+# 为 root 用户修改默认 shell 为 zsh
+chsh -s /bin/zsh root
+# 为当前用户修改默认 shell 为 zsh
+chsh -s /bin/zsh
+# or
+chsh -s `which zsh`
+```
+
+wsl-terminal 的使用 zsh，需要修改 `etc/wsl-terminal.conf`，使 shell=/bin/zsh 即可。
