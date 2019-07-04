@@ -1427,7 +1427,8 @@ class Cat implements Cloneable {
 }
 ```
 
-> 重写 clone() 方法，首先该类必须 **implements Cloneable** 接口，然后重写。
+> Cloneable 接口中没有方法，它是一个表能力的标识接口。
+> 重写 clone() 方法，首先该类必须实现 Cloneable 接口，然后重写。
 
 - 内部类
 
