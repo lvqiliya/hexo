@@ -1446,6 +1446,9 @@ class Cat implements Cloneable {
 - static
 - synchronized
 - transient
+
+默认情况下，执行了对象序列化之后，类中所有属性的内容将全部都被序列化。但是很多情况下，有一些属性并不需要序列化处理，此时在属性定义上使用 transient 关键字。此时该属性将不会被序列化，当对象被反序列化的时候，该属性为默认值（0 或者 null）。transient 只能修饰变量，不能修饰类和方法。
+
 - volatile
 
 ### 集合类
@@ -1483,6 +1486,18 @@ switch 对枚举的支持
 ### 动态代理
 
 ### 序列化
+
+所谓对象序列化指的是将内存中保存的对象以二进制数据流的形式进行处理，可以实现对象的保存或网络传输。如果要序列化对象，那么对象所在的类必须实现 java.io.Serializable 接口，作为序列化的标记。该接口描述了类的能力，同 Cloneable。
+
+- 序列化与反序列化
+
+可以利用一下两个类完成序列化与反序列化操作：
+
+| 类名称   | 序列化：ObjectOutputStream                                                                          | 反序列化：ObjectInputStream                                                                      |
+| -------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 类定义   | public class ObjectOutputStream extends OutputStream implements ObjectOutput, ObjectStreamConstants | public class ObjectInputStream extends InputStream implements ObjectInput, ObjectStreamConstants |
+| 构造方法 | public ObjectOutputStream(OutputStream out) throws IOException                                      | public ObjectInputStream(InputStream in) throws IOException                                      |
+| 操作方法 | public final void writeObject(Object obj) throws IOException                                        | public final Object readObject() throws IOException, ClassNotFoundException                      |
 
 ### 注解
 
@@ -1616,7 +1631,7 @@ try (PrintWriter out = new PrintWriter("out.txt")) {
 9. HashSet
 10. LinkedHashSet & TreeSet
 
-ArrayList
+### ArrayList
 
 ```java
 public class ArrayList<E> extends AbstractList<E>
