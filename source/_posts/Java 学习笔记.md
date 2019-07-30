@@ -1440,6 +1440,15 @@ class Cat implements Cloneable {
 
 ### Java 关键字原理及用法
 
+- private、default、protected、public
+
+| 修饰符    | 类内部 | 同一包 | 子类 | 任何地方 |
+| --------- | ------ | ------ | ---- | -------- |
+| private   | Yes    |        |      |          |
+| default   | Yes    | Yes    |      |          |
+| protected | Yes    | Yes    | Yes  |          |
+| public    | Yes    | Yes    | Yes  | Yes      |
+
 - const
 - final
 - instanceof
@@ -1588,8 +1597,22 @@ try {
 - try-with-resources
 
 ```java
-try (PrintWriter out = new PrintWriter("out.txt")) {
-    // work with out
+public void print(String[] args) {
+    String filePath = "D:" + File.separator + "test.txt";
+    try (Writer os = new FileWriter(filePath)) {
+        os.write("hello\r\n你好\r\nこんにちは\r\n");
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+    try (Reader is = new FileReader(filePath)) {
+        char[] cbuf = new char[1024];
+        int n = 0;
+        while ((n = is.read(cbuf)) != -1) {
+            System.out.println(new String(cbuf));
+        }
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
 }
 ```
 
@@ -1750,6 +1773,329 @@ public class ArrayList<E> extends AbstractList<E>
     }
 }
 ```
+
+### HashMap
+
+- 类的属性
+
+```java
+public class HashMap<K,V> extends AbstractMap<K,V>
+    implements Map<K,V>, Cloneable, Serializable {
+
+    // 默认初始容量大小 16 —— 必须为 2 的幂次方数，其原因是这样可以提高散列度
+    static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
+    // 最大容量
+    static final int MAXIMUM_CAPACITY = 1 << 30;
+    // 默认负载因子，当填充度达到 3/4 时，进行扩容操作
+    static final float DEFAULT_LOAD_FACTOR = 0.75f;
+    // 阈值，当链表节点个数大于它时，转化为红黑树
+    static final int TREEIFY_THRESHOLD = 8;
+    // 阈值，当红黑树节点个数小于它时，转化为链表
+    static final int UNTREEIFY_THRESHOLD = 6;
+    // 阈值，链表结构转化为红黑树对应的 table 的最小容量
+    static final int MIN_TREEIFY_CAPACITY = 64;
+
+    // 存储元素的数组，长度总是 2 的幂
+    transient Node<K,V>[] table;
+    // 存放具体元素的集
+    transient Set<Map.Entry<K,V>> entrySet;
+    // 存放元素的个数，非数组长度
+    transient int size;
+    // 每次扩容和更改map结构的计数器
+    transient int modCount;
+    // 阈值,当实际大小(容量*负载因子)超过临界值时，会进行扩容
+    int threshold;
+    // 负载因子
+    final float loadFactor;
+
+    // 计算哈希值，先算出 key 的 hashCode，然后与之高 16 位进行异或计算，这是用来降低 hash 冲突的方法
+    static final int hash(Object key) {
+        int h;
+        return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+    }
+}
+```
+
+- Node 节点
+
+```java
+// 继承自 Map.Entry<K,V>
+static class Node<K,V> implements Map.Entry<K,V> {
+    final int hash; // hash 值，存放元素到 hashmap 中时用来与其他元素 hash 值进行比较
+    final K key; // 键
+    V value; // 值
+    Node<K,V> next; // 指向下一个节点
+
+    Node(int hash, K key, V value, Node<K,V> next) {
+        this.hash = hash;
+        this.key = key;
+        this.value = value;
+        this.next = next;
+    }
+
+    public final K getKey()        { return key; }
+    public final V getValue()      { return value; }
+    public final String toString() { return key + "=" + value; }
+
+    public final int hashCode() {
+        return Objects.hashCode(key) ^ Objects.hashCode(value);
+    }
+
+    public final V setValue(V newValue) {
+        V oldValue = value;
+        value = newValue;
+        return oldValue;
+    }
+
+    public final boolean equals(Object o) {
+        if (o == this)
+            return true;
+        if (o instanceof Map.Entry) {
+            Map.Entry<?,?> e = (Map.Entry<?,?>)o;
+            if (Objects.equals(key, e.getKey()) &&
+                Objects.equals(value, e.getValue()))
+                return true;
+        }
+        return false;
+    }
+}
+```
+
+- Tree 节点
+
+```java
+static final class TreeNode<K,V> extends LinkedHashMap.Entry<K,V> {
+    TreeNode<K,V> parent;  // red-black tree links
+    TreeNode<K,V> left;
+    TreeNode<K,V> right;
+    TreeNode<K,V> prev;    // needed to unlink next upon deletion
+    boolean red;
+    TreeNode(int hash, K key, V val, Node<K,V> next) {
+        super(hash, key, val, next);
+    }
+
+    // 返回包含此节点的树的根
+    final TreeNode<K,V> root() {
+        for (TreeNode<K,V> r = this, p;;) {
+            if ((p = r.parent) == null)
+                return r;
+            r = p;
+        }
+    }
+}
+```
+
+- 构造方法
+
+```java
+// 默认构造函数，容量为默认初始值 16，负载因子默认 0.75f
+public HashMap() {
+    this.loadFactor = DEFAULT_LOAD_FACTOR; // all other fields defaulted
+}
+
+// 指定初始容量大小，负载因子默认 0.75f的构造函数
+public HashMap(int initialCapacity) {
+    this(initialCapacity, DEFAULT_LOAD_FACTOR);
+}
+
+// 指定初始容量大小和负载因子的构造函数
+public HashMap(int initialCapacity, float loadFactor) {
+    if (initialCapacity < 0)
+        throw new IllegalArgumentException("Illegal initial capacity: " +
+                                            initialCapacity);
+    if (initialCapacity > MAXIMUM_CAPACITY)
+        initialCapacity = MAXIMUM_CAPACITY;
+    if (loadFactor <= 0 || Float.isNaN(loadFactor))
+        throw new IllegalArgumentException("Illegal load factor: " +
+                                            loadFactor);
+    this.loadFactor = loadFactor;
+    this.threshold = tableSizeFor(initialCapacity);
+}
+
+static final int tableSizeFor(int cap) {
+    int n = cap - 1;  // 为防止 cap = 2^n 时，最后得到的值是 2^(n+1)，从而首先减去 1 以保证得到的是原值。
+    n |= n >>> 1;
+    n |= n >>> 2;
+    n |= n >>> 4;
+    n |= n >>> 8;
+    n |= n >>> 16;
+    return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+}
+
+// 包含另一个 “Map” 的构造函数
+public HashMap(Map<? extends K, ? extends V> m) {
+    this.loadFactor = DEFAULT_LOAD_FACTOR;
+    putMapEntries(m, false);
+}
+```
+
+- putMapEntries
+
+```java
+final void putMapEntries(Map<? extends K, ? extends V> m, boolean evict) {
+    int s = m.size();
+    if (s > 0) {
+        if (table == null) { // pre-size
+            float ft = ((float)s / loadFactor) + 1.0F;
+            int t = ((ft < (float)MAXIMUM_CAPACITY) ?
+                        (int)ft : MAXIMUM_CAPACITY);
+            if (t > threshold)
+                threshold = tableSizeFor(t);
+        }
+        else if (s > threshold)
+            resize();
+        for (Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
+            K key = e.getKey();
+            V value = e.getValue();
+            putVal(hash(key), key, value, false, evict);
+        }
+    }
+}
+```
+
+- put
+
+```java
+public V put(K key, V value) {
+    return putVal(hash(key), key, value, false, true);
+}
+
+final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
+               boolean evict) {
+    Node<K,V>[] tab; Node<K,V> p; int n, i;
+    if ((tab = table) == null || (n = tab.length) == 0)
+        n = (tab = resize()).length;
+    if ((p = tab[i = (n - 1) & hash]) == null)
+        tab[i] = newNode(hash, key, value, null);
+    else {
+        Node<K,V> e; K k;
+        if (p.hash == hash &&  // 判断此节点的 key 是否等于待插入节点的 key
+            ((k = p.key) == key || (key != null && key.equals(k))))
+            e = p;
+        else if (p instanceof TreeNode) // 判断是否为树节点
+            e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+        else { // 链表
+            for (int binCount = 0; ; ++binCount) { // 遍历链表
+                if ((e = p.next) == null) { // 此节点的下一节点为 null
+                    p.next = newNode(hash, key, value, null);
+                    if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st // 判断是否需要树化
+                        treeifyBin(tab, hash);
+                    break;
+                }
+                if (e.hash == hash && // 判断此节点的 key 是否等于待插入节点的 key
+                    ((k = e.key) == key || (key != null && key.equals(k))))
+                    break;
+                p = e;
+            }
+        }
+        if (e != null) { // existing mapping for key
+            V oldValue = e.value;
+            if (!onlyIfAbsent || oldValue == null)
+                e.value = value;
+            afterNodeAccess(e);
+            return oldValue;
+        }
+    }
+    ++modCount;
+    if (++size > threshold)
+        resize();
+    afterNodeInsertion(evict);
+    return null;
+}
+```
+
+- resize
+
+```java
+final Node<K,V>[] resize() {
+    Node<K,V>[] oldTab = table;
+    int oldCap = (oldTab == null) ? 0 : oldTab.length;
+    int oldThr = threshold;
+    int newCap, newThr = 0;
+    if (oldCap > 0) {
+        if (oldCap >= MAXIMUM_CAPACITY) {
+            threshold = Integer.MAX_VALUE;
+            return oldTab;
+        }
+        else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
+                    oldCap >= DEFAULT_INITIAL_CAPACITY)
+            newThr = oldThr << 1; // double threshold
+    }
+    else if (oldThr > 0) // initial capacity was placed in threshold
+        newCap = oldThr; // 指定初始容量大小和负载因子的构造函数在此处会起到作用
+    else {               // zero initial threshold signifies using defaults
+        newCap = DEFAULT_INITIAL_CAPACITY;
+        newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
+    }
+    if (newThr == 0) {
+        float ft = (float)newCap * loadFactor;
+        newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
+                    (int)ft : Integer.MAX_VALUE);
+    }
+    threshold = newThr;
+    @SuppressWarnings({"rawtypes","unchecked"})
+        Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
+    table = newTab;
+    if (oldTab != null) {
+        for (int j = 0; j < oldCap; ++j) {
+            Node<K,V> e;
+            if ((e = oldTab[j]) != null) {
+                oldTab[j] = null;
+                if (e.next == null)
+                    newTab[e.hash & (newCap - 1)] = e;
+                else if (e instanceof TreeNode)
+                    ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
+                else { // preserve order
+                    Node<K,V> loHead = null, loTail = null;
+                    Node<K,V> hiHead = null, hiTail = null;
+                    Node<K,V> next;
+                    do { // 循环里所做的事情即是将链表拆分为两个，一个的位置一定是原位置，另外一个的位置加上 oldCap
+                        next = e.next;
+                        if ((e.hash & oldCap) == 0) {
+                            if (loTail == null)
+                                loHead = e;
+                            else
+                                loTail.next = e;
+                            loTail = e;
+                        }
+                        else {
+                            if (hiTail == null)
+                                hiHead = e;
+                            else
+                                hiTail.next = e;
+                            hiTail = e;
+                        }
+                    } while ((e = next) != null);
+                    if (loTail != null) {
+                        loTail.next = null;
+                        newTab[j] = loHead;
+                    }
+                    if (hiTail != null) {
+                        hiTail.next = null;
+                        newTab[j + oldCap] = hiHead;
+                    }
+                }
+            }
+        }
+    }
+    return newTab;
+}
+```
+
+- get
+
+hash 函数降低冲突举例
+
+| 原值     | 10010001 10010101 10110000 11110001 | 00010001 10010101 10110000 11110001 |
+| -------- | ----------------------------------- | ----------------------------------- |
+| 右移     | 00000000 00000000 10010001 10010101 | 00000000 00000000 00010001 10010101 |
+| 异或后   | 10010001 10010101 00100001 01100100 | 00010001 10010101 10100001 01100100 |
+| 数组大小 | 00000000 00000001 00000000 00000000 | 00000000 00000001 00000000 00000000 |
+| n - 1    | 00000000 00000000 11111111 11111111 | 00000000 00000000 11111111 11111111 |
+| 原值与   | 00000000 00000000 10110000 11110001 | 00000000 00000000 10110000 11110001 |
+| 异或后与 | 00000000 00000000 00100001 01100100 | 00000000 00000000 10100001 01100100 |
+
+很明显，两个原值不同，但是原值与却相同，所以用异或后进行与计算大大降低了 hash 冲突。
 
 ## Java 并发编程
 
