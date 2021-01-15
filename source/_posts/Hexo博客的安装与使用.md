@@ -38,6 +38,7 @@ type: "tags"
 同理其他页面也新增即可。
 # Chapter02 使用
 ## 修改主题命令流程
+
 ```bash
 $ cnpm install hexo-deployer-git --save
 $ hexo clean
@@ -54,7 +55,8 @@ $ hexo d
 1. 创建项目*you_name.github.io*和*hexo*；
 2. D/E/F盘Git Bash中执行`git clone git@github.com:you_name/hexo.git`；
 3. 进入hexo文件夹，进入Git Bash按顺序执行
-```
+
+```bash
 $ cnpm install hexo
 $ hexo init
 $ cnpm install
@@ -67,9 +69,48 @@ $ cnpm install hexo-deployer-git
 ## 本地资料丢失
 1. D/E/F盘Git Bash中执行`git clone git@github.com:you_name/hexo.git`；
 2. 进入hexo文件夹，进入Git Bash按顺序执行
-```
+
+```bash
 $ cnpm install hexo
 $ cnpm install
 $ cnpm install hexo-deployer-git
-此处不需要再次 hexo init
+```
+# Chapter04 升级
+
+进入hexo文件夹，进入Git Bash按顺序执行
+
+1. `npm-check` 检查更新
+
+```bash
+$ npm install -g npm-check
+$ npm-check
+```
+
+2. `npm-upgrade` 更新
+
+```bash
+$ npm install -g npm-upgrade
+$ npm-upgrade
+```
+
+3. 更新全局包
+
+```bash
+$ npm update <name> -g
+或者
+$ npm update -g
+```
+
+4. 更新生产环境依赖包
+
+```bash
+$ npm update <name> -g
+或者
+$ npm update -g
+```
+
+5. 安装 swig
+
+```bash
+$ npm i hexo-renderer-swig
 ```
