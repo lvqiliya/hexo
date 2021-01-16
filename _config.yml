@@ -104,3 +104,14 @@ abbrlink:
   auto_title: false #enable auto title, it can auto fill the title by path
   auto_date: false #enable auto date, it can auto fill the date by time today
   force: false #enable force mode,in this mode, the plugin will ignore the cache, and calc the abbrlink for every post even it already had abbrlink.
+
+# symbols_count_time config
+symbols_count_time:
+  symbols: true
+  time: true
+  total_symbols: true
+  total_time: true
+  exclude_codeblock: false
+  awl: 4
+  wpm: 275
+  suffix: "mins."
