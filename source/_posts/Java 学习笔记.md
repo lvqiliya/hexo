@@ -1,8 +1,10 @@
 ---
 title: Java 学习笔记
-date: 2019-06-09 21:13:25
-tags: [Java]
+tags:
+  - Java
 categories: 白科技
+abbrlink: c057c77b
+date: 2019-06-09 21:13:25
 ---
 Java 基础知识与进阶
 <!--more-->

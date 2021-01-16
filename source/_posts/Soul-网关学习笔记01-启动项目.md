@@ -1,5 +1,6 @@
 ---
 title: Soul 网关学习笔记01-启动项目
+abbrlink: caa92ba7
 date: 2021-01-16 19:34:07
 tags:
 categories:

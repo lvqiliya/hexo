@@ -1,8 +1,10 @@
 ---
 title: Linux 系统配置
-date: 2019-02-23 13:30:51
-tags: [Linux]
+tags:
+  - Linux
 categories: 白科技
+abbrlink: 4e83cd25
+date: 2019-02-23 13:30:51
 ---
 本文是关于Ubuntu或CentOS桌面系统的基本配置，以及开发环境的配置。
 <!--more-->

@@ -1,8 +1,11 @@
 ---
 title: Redis 学习笔记
-date: 2019-03-05 09:04:04
-tags: [Linux, Redis]
+tags:
+  - Linux
+  - Redis
 categories: 白科技
+abbrlink: fa17c65a
+date: 2019-03-05 09:04:04
 ---
 本文是关于 Redis 的学习笔记
 <!--more-->

@@ -1,8 +1,11 @@
 ---
 title: Shortcuts Of Chrome
-date: 2017-11-09 15:17:11
-tags: [Shortcuts, Chrome]
+tags:
+  - Shortcuts
+  - Chrome
 categories: 白科技
+abbrlink: '79132715'
+date: 2017-11-09 15:17:11
 ---
 本快捷键整理来源于chrome扩展[*Vimium*](http://chromecj.com/productivity/2014-12/325.html)与[火狐浏览器快捷键](https://support.mozilla.org/zh-CN/kb/%E9%94%AE%E7%9B%98%E5%BF%AB%E6%8D%B7%E9%94%AE?redirectlocale=en-US&as=u&redirectslug=Keyboard+shortcuts&utm_source=inproduct)，仅用于学习与分享。
 <!--more-->

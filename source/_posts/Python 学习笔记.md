@@ -1,8 +1,10 @@
 ---
 title: Python 学习笔记
-date: 2019-03-05 14:25:39
-tags: [Python]
+tags:
+  - Python
 categories: 白科技
+abbrlink: 7db8c537
+date: 2019-03-05 14:25:39
 ---
 本文是关于 Python 的学习笔记
 <!--more-->

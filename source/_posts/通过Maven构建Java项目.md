@@ -1,8 +1,11 @@
 ---
 title: 通过Maven构建Java项目
-date: 2017-09-29 13:50:47
-tags: [Spring, Translation]
+tags:
+  - Spring
+  - Translation
 categories: 译文二三事
+abbrlink: 2a519e30
+date: 2017-09-29 13:50:47
 ---
 本指南将指导你利用Maven构建一个简单的Java项目。
 <!--more-->

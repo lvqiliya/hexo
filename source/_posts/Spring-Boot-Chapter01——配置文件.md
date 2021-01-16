@@ -1,8 +1,10 @@
 ---
 title: Spring Boot Chapter01——配置文件
-date: 2017-12-26 16:30:56
-tags: [Spring Boot]
+tags:
+  - Spring Boot
 categories: 白科技
+abbrlink: f9807a74
+date: 2017-12-26 16:30:56
 ---
 关于Spring Boot配置文件的一些整理
 <!--more-->

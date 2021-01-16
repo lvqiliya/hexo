@@ -1,8 +1,18 @@
 ---
 title: Windows 系统配置
-date: 2017-12-26 22:53:26
-tags: [Java, Maven, Tomcat, Gradle, Git, TortoiseGit, IDEA, MySQL, Sublime Text3]
+tags:
+  - Java
+  - Maven
+  - Tomcat
+  - Gradle
+  - Git
+  - TortoiseGit
+  - IDEA
+  - MySQL
+  - Sublime Text3
 categories: 白科技
+abbrlink: a40258e8
+date: 2017-12-26 22:53:26
 ---
 整理的环境配置
 <!--more-->

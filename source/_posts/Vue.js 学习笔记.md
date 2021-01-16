@@ -1,8 +1,10 @@
 ---
 title: Vue.js 学习笔记
-date: 2019-05-19 14:02:24
-tags: [Vue]
+tags:
+  - Vue
 categories: 白科技
+abbrlink: f34a88b2
+date: 2019-05-19 14:02:24
 ---
 本文是关于 Vue.js 的学习笔记
 <!--more-->

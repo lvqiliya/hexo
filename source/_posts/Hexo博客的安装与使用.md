@@ -1,10 +1,11 @@
 ---
 title: Hexo博客的安装与使用
-date: 2017-09-27 15:55:22
 tags:
-- HEXO
+  - HEXO
 categories:
-- 关于HEXO的二三事
+  - 关于HEXO的二三事
+abbrlink: b3d77bde
+date: 2017-09-27 15:55:22
 ---
 HEXO的安装和配置指南，包括从零搭建、多终端编辑博客等
 <!--more-->

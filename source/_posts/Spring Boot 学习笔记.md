@@ -1,8 +1,10 @@
 ---
 title: Spring Boot 学习笔记
-date: 2019-05-26 19:10:44
-tags: [Spring Boot]
+tags:
+  - Spring Boot
 categories: 白科技
+abbrlink: ed61e28f
+date: 2019-05-26 19:10:44
 ---
 本文是关于 Spring Boot 学习的笔记
 <!--more-->
