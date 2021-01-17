@@ -2,8 +2,8 @@
 title: Soul 网关学习笔记03-dubbo插件初体验
 abbrlink: 1592c754
 date: 2021-01-16 19:44:50
-tags:
-categories:
+tags: soul
+categories: 源码学习
 ---
 使用 divide 插件，体验 dubbo 代理
 <!--more-->

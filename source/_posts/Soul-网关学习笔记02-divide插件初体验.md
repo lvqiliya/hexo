@@ -2,8 +2,8 @@
 title: Soul 网关学习笔记02-divide插件初体验
 abbrlink: 1de4afa4
 date: 2021-01-16 19:34:34
-tags:
-categories:
+tags: soul
+categories: 源码学习
 ---
 使用 divide 插件，体验 http 代理
 <!--more-->
