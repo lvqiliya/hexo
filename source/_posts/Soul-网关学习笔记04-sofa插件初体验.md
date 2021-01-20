@@ -2,8 +2,8 @@
 title: Soul 网关学习笔记04-sofa插件初体验
 abbrlink: 114ca0a8
 date: 2021-01-18 22:17:50
-tags:
-categories:
+tags: soul
+categories: 源码学习
 ---
 使用 sofa 插件，体验 sofa 代理
 <!--more-->
