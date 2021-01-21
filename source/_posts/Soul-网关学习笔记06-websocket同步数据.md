@@ -82,7 +82,6 @@ public class WebsocketSyncDataConfiguration {
         return new WebsocketConfig();
     }
 
-
     @Bean
     public SyncDataService websocketSyncDataService(
             // ws://localhost:9095/websocket
@@ -135,7 +134,25 @@ public final class SoulWebsocketClient extends WebSocketClient {
 
 ```java
 public class WebsocketDataHandler {
-    ......
+    private static final EnumMap<ConfigGroupEnum, DataHandler> ENUM_MAP = new EnumMap<>(ConfigGroupEnum.class);
+
+    /**
+     * Instantiates a new Websocket data handler.
+     *
+     * @param pluginDataSubscriber the plugin data subscriber
+     * @param metaDataSubscribers  the meta data subscribers
+     * @param authDataSubscribers  the auth data subscribers
+     */
+    public WebsocketDataHandler(final PluginDataSubscriber pluginDataSubscriber,
+                                final List<MetaDataSubscriber> metaDataSubscribers,
+                                final List<AuthDataSubscriber> authDataSubscribers) {
+        ENUM_MAP.put(ConfigGroupEnum.PLUGIN, new PluginDataHandler(pluginDataSubscriber));
+        ENUM_MAP.put(ConfigGroupEnum.SELECTOR, new SelectorDataHandler(pluginDataSubscriber));
+        ENUM_MAP.put(ConfigGroupEnum.RULE, new RuleDataHandler(pluginDataSubscriber));
+        ENUM_MAP.put(ConfigGroupEnum.APP_AUTH, new AuthDataHandler(authDataSubscribers));
+        ENUM_MAP.put(ConfigGroupEnum.META_DATA, new MetaDataHandler(metaDataSubscribers));
+    }
+
     public void executor(final ConfigGroupEnum type, final String json, final String eventType) {
         ENUM_MAP.get(type).handle(json, eventType);
     }
@@ -143,5 +160,118 @@ public class WebsocketDataHandler {
 ```
 
 所有的数据同步将从 `handle` 方法为起点。
+
+---
+21日更新
+
+## 调用链解析
+
+书接上文，通过 `WebsocketDataHandler` 的构造器可以看到，参数包括了三个 Subscriber。接口 `MetaDataSubscriber` 和接口 `AuthDataSubscriber` 都定义了 `onSubscribe`、`unSubscribe`、`refresh` 三个方法，它们的实现类分别实现了前两个方法，后一个方法是 Java 8 引入了默认方法，目前源码中没有给定实现。接口 `PluginDataSubscriber` 定义了三组，每组四个，共十二个默认方法。分别包括对插件的处理、对选择器的处理、对规则的处理。其实现类完成了具体的逻辑处理——更新和删除操作。
+
+```java
+public interface PluginDataSubscriber {
+    default void onSubscribe(PluginData pluginData) {}
+    default void unSubscribe(PluginData pluginData) {}
+    default void refreshPluginDataAll() {}
+    default void refreshPluginDataSelf(List<PluginData> pluginDataList) {}
+    default void onSelectorSubscribe(SelectorData selectorData) {}
+    default void unSelectorSubscribe(SelectorData selectorData) {}
+    default void refreshSelectorDataAll() {}
+    default void refreshSelectorDataSelf(List<SelectorData> selectorDataList) {}
+    default void onRuleSubscribe(RuleData ruleData) {}
+    default void unRuleSubscribe(RuleData ruleData) {}
+    default void refreshRuleDataAll() {}
+    default void refreshRuleDataSelf(List<RuleData> ruleDataList) {}
+}
+```
+
+上文所提到的 `handle` 方法具体实现逻辑是在抽象类 `AbstractDataHandler`，除此之外该类还定义了四个抽象方法。众所周知子类需具体实现抽象方法，根据 `handle` 方法传入的参数 `type` 自动选择具体子类去实现刷新、创建、删除等操作。
+
+```java
+public abstract class AbstractDataHandler<T> implements DataHandler {
+    protected abstract List<T> convert(String json);
+    protected abstract void doRefresh(List<T> dataList);
+    protected abstract void doUpdate(List<T> dataList);
+    protected abstract void doDelete(List<T> dataList);
+
+    @Override
+    public void handle(final String json, final String eventType) {
+        List<T> dataList = convert(json);
+        if (CollectionUtils.isNotEmpty(dataList)) {
+            DataEventTypeEnum eventTypeEnum = DataEventTypeEnum.acquireByName(eventType);
+            switch (eventTypeEnum) {
+                case REFRESH:
+                case MYSELF:
+                    doRefresh(dataList);
+                    break;
+                case UPDATE:
+                case CREATE:
+                    doUpdate(dataList);
+                    break;
+                case DELETE:
+                    doDelete(dataList);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+}
+```
+
+启动 `soul-bootstrap` 模块时，插件处理的事件类型为 `MYSELF`，根据抽象类的判断逻辑，执行 `PluginDataHandler#doRefresh` 方法。先执行公共插件数据订阅者类 `CommonPluginDataSubscriber` 的刷新方法，即清理掉缓存类 `BaseDataCache` 中现有的插件数据。然后将插件数据再次缓存到 `BaseDataCache`中。
+
+```java
+public class PluginDataHandler extends AbstractDataHandler<PluginData> {
+    ......
+    protected void doRefresh(final List<PluginData> dataList) {
+        pluginDataSubscriber.refreshPluginDataSelf(dataList);
+        dataList.forEach(pluginDataSubscriber::onSubscribe);
+    }
+    ......
+}
+```
+
+同理，对于选择器和规则的处理与插件的处理逻辑一样，不再赘述。三者的核心处理逻辑则是以下代码。
+
+```java
+public class CommonPluginDataSubscriber implements PluginDataSubscriber {
+    ......
+    private <T> void subscribeDataHandler(final T classData, final DataEventTypeEnum dataType) {
+        Optional.ofNullable(classData).ifPresent(data -> {
+            if (data instanceof PluginData) {
+                PluginData pluginData = (PluginData) data;
+                if (dataType == DataEventTypeEnum.UPDATE) {
+                    BaseDataCache.getInstance().cachePluginData(pluginData);
+                    Optional.ofNullable(handlerMap.get(pluginData.getName())).ifPresent(handler -> handler.handlerPlugin(pluginData));
+                } else if (dataType == DataEventTypeEnum.DELETE) {
+                    BaseDataCache.getInstance().removePluginData(pluginData);
+                    Optional.ofNullable(handlerMap.get(pluginData.getName())).ifPresent(handler -> handler.removePlugin(pluginData));
+                }
+            } else if (data instanceof SelectorData) {
+                SelectorData selectorData = (SelectorData) data;
+                if (dataType == DataEventTypeEnum.UPDATE) {
+                    BaseDataCache.getInstance().cacheSelectData(selectorData);
+                    Optional.ofNullable(handlerMap.get(selectorData.getPluginName())).ifPresent(handler -> handler.handlerSelector(selectorData));
+                } else if (dataType == DataEventTypeEnum.DELETE) {
+                    BaseDataCache.getInstance().removeSelectData(selectorData);
+                    Optional.ofNullable(handlerMap.get(selectorData.getPluginName())).ifPresent(handler -> handler.removeSelector(selectorData));
+                }
+            } else if (data instanceof RuleData) {
+                RuleData ruleData = (RuleData) data;
+                if (dataType == DataEventTypeEnum.UPDATE) {
+                    BaseDataCache.getInstance().cacheRuleData(ruleData);
+                    Optional.ofNullable(handlerMap.get(ruleData.getPluginName())).ifPresent(handler -> handler.handlerRule(ruleData));
+                } else if (dataType == DataEventTypeEnum.DELETE) {
+                    BaseDataCache.getInstance().removeRuleData(ruleData);
+                    Optional.ofNullable(handlerMap.get(ruleData.getPluginName())).ifPresent(handler -> handler.removeRule(ruleData));
+                }
+            }
+        });
+    }
+}
+```
+
+接下来需要针对 `handler.handlerPlugin(pluginData)`、`handler.handlerSelector(selectorData)`、`handler.handlerRule(ruleData)` 三者进行分析。
 
 ***未完待续***
