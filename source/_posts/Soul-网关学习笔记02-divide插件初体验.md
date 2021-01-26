@@ -44,39 +44,39 @@ public class OrderController {
 
 回到选择器本身，可以进行修改和删除。打开修改可以看到配置项写明了 IP、port 和权重。现在笔者通过 postman 发送请求到 soul 网关，测试网关转发功能。明显的，soul-bootstrap 日志中可以看到成功收到请求，并转发给了配置中的 IP。
 
-```markdown
-The request urlPath is http://192.168.163.1:8188/order/findById?id=3, retryTimes is 0
+```log
+The request urlPath is http:/localhost:8188/order/findById?id=3, retryTimes is 0
 ```
 
 ## 多端口
 
 现在修改 http 子模块的配置文件，将端口号改为 8189 并启动项目。此时观察 divide 模块的选择器，打开修改可以看到配置项出现了多行，包括 8188 和 8189 两个端口。再次使用 postman 进行测试。
 
-```markdown
+```log
 divide selector success match , selector name :/http
 divide selector success match , selector name :/http/order/findById
-The request urlPath is http://192.168.163.1:8188/order/findById?id=3, retryTimes is 0
+The request urlPath is http:/localhost:8188/order/findById?id=3, retryTimes is 0
 divide selector success match , selector name :/http
 divide selector success match , selector name :/http/order/findById
-The request urlPath is http://192.168.163.1:8189/order/findById?id=3, retryTimes is 0
+The request urlPath is http:/localhost:8189/order/findById?id=3, retryTimes is 0
 Unknown channel option 'SO_TIMEOUT' for channel '[id: 0x7d243849]'
 divide selector success match , selector name :/http
 divide selector success match , selector name :/http/order/findById
-The request urlPath is http://192.168.163.1:8188/order/findById?id=3, retryTimes is 0
+The request urlPath is http:/localhost:8188/order/findById?id=3, retryTimes is 0
 divide selector success match , selector name :/http
 divide selector success match , selector name :/http/order/findById
-The request urlPath is http://192.168.163.1:8189/order/findById?id=3, retryTimes is 0
+The request urlPath is http:/localhost:8189/order/findById?id=3, retryTimes is 0
 ```
 
 在 4 次测试中，8188 和 8189 的概率相同，符合权重描述的 50 对 50。修改 8189 的权重为 100，8188 的权重为 1，再次测试。
 
-```markdown
+```log
 divide selector success match , selector name :/http
 divide selector success match , selector name :/http/order/findById
-The request urlPath is http://192.168.163.1:8189/order/findById?id=3, retryTimes is 0
+The request urlPath is http:/localhost:8189/order/findById?id=3, retryTimes is 0
 divide selector success match , selector name :/http
 divide selector success match , selector name :/http/order/findById
-The request urlPath is http://192.168.163.1:8189/order/findById?id=3, retryTimes is 0
+The request urlPath is http:/localhost:8189/order/findById?id=3, retryTimes is 0
 ```
 
 两次测试中均转发到了 8189 端口，符合权重描述的 1 对 100。
@@ -85,17 +85,17 @@ The request urlPath is http://192.168.163.1:8189/order/findById?id=3, retryTimes
 
 - 打开名为 `/http/test/**` 的规则并修改条件。将 `match` 改为 `=`，将 `/http/test/**` 改为 `/http/test/findByUserId`。此时通过 postman 测试。
 
-```markdown
+```log
 divide selector success match , selector name :/http
 divide selector success match , selector name :/http/test/**
-The request urlPath is http://192.168.163.1:8189/test/findByUserId?userId=007, retryTimes is 0
+The request urlPath is http:/localhost:8189/test/findByUserId?userId=007, retryTimes is 0
 ```
 
 访问成功。
 
 - 修改 postman 访问地址重新测试。
 
-```markdown
+```log
 divide selector success match , selector name :/http
 can not match rule data: divide
 ```
@@ -104,10 +104,10 @@ can not match rule data: divide
 
 - 将规则重置后重新访问 `http://127.0.0.1:9195/http/test/path/007?name=zhangsan`。
 
-```markdown
+```log
 divide selector success match , selector name :/http
 divide selector success match , selector name :/http/test/**
-The request urlPath is http://192.168.163.1:8189/test/path/007?name=zhangsan, retryTimes is 0
+The request urlPath is http:/localhost:8189/test/path/007?name=zhangsan, retryTimes is 0
 ```
 
 访问成功。
