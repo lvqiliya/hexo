@@ -8,7 +8,9 @@ categories:
 探究 divide 插件原理
 <!--more-->
 
-分别启动 `soul-admin`、`soul-bootstrap`、`soul-examples-http` 三个模块，然后发起 GET 请求：http://localhost:9195/http/order/findById?id=007，得到下面关键日志。
+## 调用链
+
+分别启动 `soul-admin`、`soul-bootstrap`、`soul-examples-http` 三个模块，然后发起 GET 请求：`http://localhost:9195/http/order/findById?id=007`，得到下面关键日志。
 
 ```log
 o.d.soul.plugin.base.AbstractSoulPlugin  : divide selector success match , selector name :/http
@@ -51,6 +53,11 @@ public abstract class AbstractSoulPlugin implements SoulPlugin {
         String pluginName = named();
         final PluginData pluginData = BaseDataCache.getInstance().obtainPluginData(pluginName);
         if (pluginData != null && pluginData.getEnabled()) {
+            final Collection<SelectorData> selectors = BaseDataCache.getInstance().obtainSelectorData(pluginName);
+            ......
+            final SelectorData selectorData = matchSelector(exchange, selectors);
+            ......
+            final List<RuleData> rules = BaseDataCache.getInstance().obtainRuleData(selectorData.getId());
             ......
             return doExecute(exchange, chain, selectorData, rule);
         }
@@ -185,3 +192,93 @@ public class WebClientResponsePlugin implements SoulPlugin {
 ```
 
 明显的，这一步是最终一步，之后的逻辑就是返回应答。
+
+---
+未完待续
+
+---
+28日更新
+
+## 负载均衡
+
+通过前面的分析，已经弄清楚了 `divide` 插件的调用链，但是在分析抽象类 AbstractSoulPlugin 的时候并没有深入探究是如何匹配选择器和如何绑定规则。笔者分别以 `8188` 和 `8189` 两个端口启动 `SoulTestHttpApplication`，然后进入控制台页面，点击插件列表中的 `divide` 并修改选择器，在配置项中新增 host、protocol、ip:port、weight。
+
+> 猜想：既然可以在选择器中添加配置并且设定权重，那一定会有一个机制来选择调用哪一个 ip 和端口。
+
+```java
+final SelectorData selectorData = matchSelector(exchange, selectors);
+
+private SelectorData matchSelector(final ServerWebExchange exchange, final Collection<SelectorData> selectors) {
+    return selectors.stream()
+            .filter(selector -> selector.getEnabled() && filterSelector(selector, exchange))
+            .findFirst().orElse(null);
+}
+
+private Boolean filterSelector(final SelectorData selector, final ServerWebExchange exchange) {
+    if (selector.getType() == SelectorTypeEnum.CUSTOM_FLOW.getCode()) {
+        if (CollectionUtils.isEmpty(selector.getConditionList())) {
+            return false;
+        }
+        return MatchStrategyUtils.match(selector.getMatchMode(), selector.getConditionList(), exchange);
+    }
+    return true;
+}
+```
+
+由以上代码可得以下结论：
+
+1. 使用方法 filter 过滤选择器，筛选出选择器是启用状态且 filterSelector 返回 true 的选择器；
+2. 方法 filterSelector 调用了 `MatchStrategyUtils#match` 返回一个布尔值协助判断。
+
+由于插件 divide 中没有定义多个选择器，第一个进入方法 `MatchStrategyUtils#match` 进行匹配的选择器必定返回 true，此处先略去该方法的深入分析。选择器的匹配完成后就是匹配规则。
+
+```java
+private RuleData matchRule(final ServerWebExchange exchange, final Collection<RuleData> rules) {
+    return rules.stream()
+            .filter(rule -> filterRule(rule, exchange))
+            .findFirst().orElse(null);
+}
+
+private Boolean filterRule(final RuleData ruleData, final ServerWebExchange exchange) {
+    return ruleData.getEnabled() && MatchStrategyUtils.match(ruleData.getMatchMode(), ruleData.getConditionDataList(), exchange);
+}
+```
+
+结论与选择器部分相似，不同的是，当启动项目时候注册了多条规则，那么此处通过方法 `filter` 过滤时必定要将规则列表中的数据一一判断，默认注册了 5 条规则，那应该会执行 5 次方法 `filterRule`。
+
+前文提出的**猜想**到目前为止尚未得到证实，而匹配选择器和规则的逻辑中并不涉及负载均衡，故而进入方法 `DividePlugin#doExecute` 继续跟踪查看。调用链部分的分析中有一个关键的工具类没有提及，根据其命名看，必定和负载均衡有直接关系。关键代码如下：
+
+```java
+DivideUpstream divideUpstream = LoadBalanceUtils.selector(upstreamList, ruleHandle.getLoadBalance(), ip);
+
+public class LoadBalanceUtils {
+    public static DivideUpstream selector(final List<DivideUpstream> upstreamList, final String algorithm, final String ip) {
+        LoadBalance loadBalance = ExtensionLoader.getExtensionLoader(LoadBalance.class).getJoin(algorithm);
+        return loadBalance.select(upstreamList, ip);
+    }
+}
+```
+
+明显的，方法 `LoadBalanceUtils#selector` 根据入参 `algorithm` 去找到负载均衡算法实现类，然后调用实现类中的 `select` 方法选择到底调用哪一个 ip 和端口。入参 `algorithm` 是在规则中配置的负载策略，本文使用的规则默认都是 `random`。
+
+查看接口 `LoadBalance` 的 `random` 算法实现类。
+
+```java
+public class RandomLoadBalance extends AbstractLoadBalance {
+    public DivideUpstream doSelect(final List<DivideUpstream> upstreamList, final String ip) {
+        int totalWeight = calculateTotalWeight(upstreamList);
+        boolean sameWeight = isAllUpStreamSameWeight(upstreamList);
+        if (totalWeight > 0 && !sameWeight) {
+            return random(totalWeight, upstreamList);
+        }
+        // If the weights are the same or the weights are 0 then random
+        return random(upstreamList);
+    }
+    ......
+}
+```
+
+至此，通过负载均衡算法 `RandomLoadBalance#doSelect` 完成了调用具体的 ip 和端口，提出的猜想得到证实。
+
+---
+未完待续
