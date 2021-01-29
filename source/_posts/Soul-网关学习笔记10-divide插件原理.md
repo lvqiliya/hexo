@@ -332,7 +332,7 @@ public class UpstreamCheckService {
 
 在方法 `check` 中打上断点并启动 `soul-examples-http` 服务，查看调用栈信息。
 
-![UpstreamCheckService#check 调用栈](/images/soul/stack-trace-UpstreamCheckService#check.png)
+![UpstreamCheckService#check 调用栈](/images/soul/stack-trace-UpstreamCheckService.png)
 
 于是追踪到调用方法 `check` 的代码。
 
