@@ -282,3 +282,89 @@ public class RandomLoadBalance extends AbstractLoadBalance {
 
 ---
 未完待续
+
+---
+29日更新
+
+## 探活机制
+
+停掉 `soul-examples-http` 服务后，`soul-admin` 模块的日志打印了以下错误信息。
+
+```java
+o.d.s.a.s.impl.UpstreamCheckService      : check the url=localhost:8188 is fail 
+```
+
+进入类 `UpstreamCheckService` 查看日志打印的为止并查看逻辑。
+
+```java
+public class UpstreamCheckService {
+    ......
+    private void check(final String selectorName, final List<DivideUpstream> upstreamList) {
+        List<DivideUpstream> successList = Lists.newArrayListWithCapacity(upstreamList.size());
+        for (DivideUpstream divideUpstream : upstreamList) {
+            final boolean pass = UpstreamCheckUtils.checkUrl(divideUpstream.getUpstreamUrl());
+            if (pass) {
+                if (!divideUpstream.isStatus()) {
+                    divideUpstream.setTimestamp(System.currentTimeMillis());
+                    divideUpstream.setStatus(true);
+                    log.info("UpstreamCacheManager check success the url: {}, host: {} ", divideUpstream.getUpstreamUrl(), divideUpstream.getUpstreamHost());
+                }
+                successList.add(divideUpstream);
+            } else {
+                divideUpstream.setStatus(false);
+                log.error("check the url={} is fail ", divideUpstream.getUpstreamUrl());
+            }
+        }
+        if (successList.size() == upstreamList.size()) {
+            return;
+        }
+        if (successList.size() > 0) {
+            UPSTREAM_MAP.put(selectorName, successList);
+            updateSelectorHandler(selectorName, successList);
+        } else {
+            UPSTREAM_MAP.remove(selectorName);
+            updateSelectorHandler(selectorName, null);
+        }
+    }
+    ......
+}
+```
+
+在方法 `check` 中打上断点并启动 `soul-examples-http` 服务，查看调用栈信息。
+
+![UpstreamCheckService#check 调用栈](/images/soul/stack-trace-UpstreamCheckService#check.png)
+
+于是追踪到调用方法 `check` 的代码。
+
+```java
+public class UpstreamCheckService {
+    ......
+    @PostConstruct
+    public void setup() {
+        ......
+        if (check) {
+            new ScheduledThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), SoulThreadFactory.create("scheduled-upstream-task", false))
+                    .scheduleWithFixedDelay(this::scheduled, 10, scheduledTime, TimeUnit.SECONDS);
+        }
+    }
+    ......
+    private void scheduled() {
+        if (UPSTREAM_MAP.size() > 0) {
+            UPSTREAM_MAP.forEach(this::check);
+        }
+    }
+    ......
+}
+```
+
+明显的，在方法 `setup` 中初始化了一个线程池，每10秒执行一次方法 `scheduled`，从而调用方法 `check`。其具体逻辑如下：
+
+1. 当缓存 UPSTREAM_MAP 中个数大于 0 时，遍历每项数据并检查；
+2. 如果 url 是 ip，则使用 socket#connect 连接实现探活；如果不是，则使用 InetAddress#isReachable 来进行探活；
+3. 如果发现 `divideUpstream` 已死，首先从 UPSTREAM_MAP 移除，然后再通过 ApplicationEventPublisher#publishEvent 发布出去。
+
+补充说明，在方法 `setup` 上标注了 `@PostConstruct`，官方文档中的描述如下：
+
+> The PostConstruct annotation is used on a method that needs to be executed after dependency injection is done to perform any initialization.
+
+简单来说就是类 `UpstreamCheckService` 作为一个 bean 依赖注入后，方法 `setup` 需要第一时间执行。
