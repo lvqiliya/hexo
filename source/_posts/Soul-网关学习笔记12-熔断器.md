@@ -1,5 +1,5 @@
 ---
-title: Soul 网关学习笔记12-限流器
+title: Soul 网关学习笔记12-熔断器
 abbrlink: f080064
 date: 2021-01-30 22:19:40
 tags:
@@ -152,4 +152,4 @@ public class SentinelPlugin extends AbstractSoulPlugin {
 ```
 
 ---
-三个限流器的具体差异尚未进行深一步探究。
+三个熔断器的具体差异尚未进行深一步探究。
