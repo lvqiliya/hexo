@@ -227,3 +227,164 @@ public class HttpLongPollingDataChangedListener extends AbstractDataChangedListe
 
 ---
 未完待续
+
+---
+2月3日更新
+
+## `soul-bootstrap` 模块
+
+既然是探究 http 长轮询同步数据，那么直接找到同步数据模块 `soul-sync-data-center`，查看子模块 `soul-sync-data-http`。查看配置类 `HttpSyncDataConfiguration`。
+
+```java
+@Configuration
+@ConditionalOnClass(HttpSyncDataService.class)
+@ConditionalOnProperty(prefix = "soul.sync.http", name = "url")
+@Slf4j
+public class HttpSyncDataConfiguration {
+    @Bean
+    public SyncDataService httpSyncDataService(final ObjectProvider<HttpConfig> httpConfig, final ObjectProvider<PluginDataSubscriber> pluginSubscriber,
+                                           final ObjectProvider<List<MetaDataSubscriber>> metaSubscribers, final ObjectProvider<List<AuthDataSubscriber>> authSubscribers) {
+        log.info("you use http long pull sync soul data");
+        return new HttpSyncDataService(Objects.requireNonNull(httpConfig.getIfAvailable()), Objects.requireNonNull(pluginSubscriber.getIfAvailable()),
+                metaSubscribers.getIfAvailable(Collections::emptyList), authSubscribers.getIfAvailable(Collections::emptyList));
+    }
+    @Bean
+    @ConfigurationProperties(prefix = "soul.sync.http")
+    public HttpConfig httpConfig() {
+        return new HttpConfig();
+    }
+}
+```
+
+配置类读取了配置文件中同步数据的配置，并初始化了 http 同步数据类 `HttpSyncDataService`。
+
+```java
+public class HttpSyncDataService implements SyncDataService, AutoCloseable {
+    ......
+    public HttpSyncDataService(final HttpConfig httpConfig, final PluginDataSubscriber pluginDataSubscriber,
+                               final List<MetaDataSubscriber> metaDataSubscribers, final List<AuthDataSubscriber> authDataSubscribers) {
+        this.factory = new DataRefreshFactory(pluginDataSubscriber, metaDataSubscribers, authDataSubscribers);
+        this.httpConfig = httpConfig;
+        this.serverList = Lists.newArrayList(Splitter.on(",").split(httpConfig.getUrl()));
+        this.httpClient = createRestTemplate();
+        this.start();
+    }
+    ......
+    private void start() {
+        // It could be initialized multiple times, so you need to control that.
+        if (RUNNING.compareAndSet(false, true)) {
+            // fetch all group configs.
+            this.fetchGroupConfig(ConfigGroupEnum.values());
+            int threadSize = serverList.size();
+            this.executor = new ThreadPoolExecutor(threadSize, threadSize, 60L, TimeUnit.SECONDS,
+                    new LinkedBlockingQueue<>(),
+                    SoulThreadFactory.create("http-long-polling", true));
+            // start long polling, each server creates a thread to listen for changes.
+            this.serverList.forEach(server -> this.executor.execute(new HttpLongPollingTask(server)));
+        } else {
+            log.info("soul http long polling was started, executor=[{}]", executor);
+        }
+    }
+}
+```
+
+构造函数的最后一步调用了方法 `start`，通过原子类的CAS方法 `RUNNING` 改为 `true`。进入判断，首先调用方法 `fetchGroupConfig`，然后初始化了一个核心线程数、最大线程数都为配置文件字段 `soul.sync.http.urls` 大小的线程池，然后循环 url 执行 `HttpLongPollingTask`。
+
+```java
+    class HttpLongPollingTask implements Runnable {
+        private String server;
+        private final int retryTimes = 3;
+        HttpLongPollingTask(final String server) {
+            this.server = server;
+        }
+        @Override
+        public void run() {
+            while (RUNNING.get()) {
+                for (int time = 1; time <= retryTimes; time++) {
+                    try {
+                        doLongPolling(server);
+                    } catch (Exception e) {
+                        // print warnning log.
+                        if (time < retryTimes) {
+                            log.warn("Long polling failed, tried {} times, {} times left, will be suspended for a while! {}",
+                                    time, retryTimes - time, e.getMessage());
+                            ThreadUtils.sleep(TimeUnit.SECONDS, 5);
+                            continue;
+                        }
+                        // print error, then suspended for a while.
+                        log.error("Long polling failed, try again after 5 minutes!", e);
+                        ThreadUtils.sleep(TimeUnit.MINUTES, 5);
+                    }
+                }
+            }
+            log.warn("Stop http long polling.");
+        }
+    }
+```
+
+方法 `run` 中，因为 `RUNNING` 的值为 `true`，所以是死循环。
+
+进入死循环并根据 `retryTimes` 再次循环执行方法 `doLongPolling` 用于同步数据。
+
+```java
+    private void doLongPolling(final String server) {
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>(8);
+        for (ConfigGroupEnum group : ConfigGroupEnum.values()) {
+            ConfigData<?> cacheConfig = factory.cacheConfigData(group);
+            String value = String.join(",", cacheConfig.getMd5(), String.valueOf(cacheConfig.getLastModifyTime()));
+            params.put(group.name(), Lists.newArrayList(value));
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        HttpEntity httpEntity = new HttpEntity(params, headers);
+        String listenerUrl = server + "/configs/listener";
+        log.debug("request listener configs: [{}]", listenerUrl);
+        JsonArray groupJson = null;
+        try {
+            String json = this.httpClient.postForEntity(listenerUrl, httpEntity, String.class).getBody();
+            log.debug("listener result: [{}]", json);
+            groupJson = GSON.fromJson(json, JsonObject.class).getAsJsonArray("data");
+        } catch (RestClientException e) {
+            String message = String.format("listener configs fail, server:[%s], %s", server, e.getMessage());
+            throw new SoulException(message, e);
+        }
+        if (groupJson != null) {
+            // fetch group configuration async.
+            ConfigGroupEnum[] changedGroups = GSON.fromJson(groupJson, ConfigGroupEnum[].class);
+            if (ArrayUtils.isNotEmpty(changedGroups)) {
+                log.info("Group config changed: {}", Arrays.toString(changedGroups));
+                this.doFetchGroupConfig(server, changedGroups);
+            }
+        }
+    }
+
+    private void doFetchGroupConfig(final String server, final ConfigGroupEnum... groups) {
+        StringBuilder params = new StringBuilder();
+        for (ConfigGroupEnum groupKey : groups) {
+            params.append("groupKeys").append("=").append(groupKey.name()).append("&");
+        }
+        String url = server + "/configs/fetch?" + StringUtils.removeEnd(params.toString(), "&");
+        log.info("request configs: [{}]", url);
+        String json = null;
+        try {
+            json = this.httpClient.getForObject(url, String.class);
+        } catch (RestClientException e) {
+            String message = String.format("fetch config fail from server[%s], %s", url, e.getMessage());
+            log.warn(message);
+            throw new SoulException(message, e);
+        }
+        // update local cache
+        boolean updated = this.updateCacheWithJson(json);
+        if (updated) {
+            log.info("get latest configs: [{}]", json);
+            return;
+        }
+        // not updated. it is likely that the current config server has not been updated yet. wait a moment.
+        log.info("The config of the server[{}] has not been updated or is out of date. Wait for 30s to listen for changes again.", server);
+        ThreadUtils.sleep(TimeUnit.SECONDS, 30);
+    }
+```
+
+方法 `doFetchGroupConfig` 也被方法 `fetchGroupConfig` 调用。
+
+更新数据完成之后会睡眠 30s，然后重新进入死循环。
