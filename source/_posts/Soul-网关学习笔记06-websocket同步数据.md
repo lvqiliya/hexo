@@ -101,12 +101,54 @@ public class WebsocketSyncDataConfiguration {
 接着进入 `WebsocketSyncDataService` 源码部分。
 
 ```java
-......
-clients.add(new SoulWebsocketClient(new URI(url), Objects.requireNonNull(pluginDataSubscriber), metaDataSubscribers, authDataSubscribers));
-......
+public class WebsocketSyncDataService implements SyncDataService, AutoCloseable {
+    ......
+    public WebsocketSyncDataService(final WebsocketConfig websocketConfig,
+                                    final PluginDataSubscriber pluginDataSubscriber,
+                                    final List<MetaDataSubscriber> metaDataSubscribers,
+                                    final List<AuthDataSubscriber> authDataSubscribers) {
+        String[] urls = StringUtils.split(websocketConfig.getUrls(), ",");
+        executor = new ScheduledThreadPoolExecutor(urls.length, SoulThreadFactory.create("websocket-connect", true));
+        for (String url : urls) {
+            try {
+                clients.add(new SoulWebsocketClient(new URI(url), Objects.requireNonNull(pluginDataSubscriber), metaDataSubscribers, authDataSubscribers));
+            } catch (URISyntaxException e) {
+                log.error("websocket url({}) is error", url, e);
+            }
+        }
+        try {
+            for (WebSocketClient client : clients) {
+                boolean success = client.connectBlocking(3000, TimeUnit.MILLISECONDS);
+                if (success) {
+                    log.info("websocket connection is successful.....");
+                } else {
+                    log.error("websocket connection is error.....");
+                }
+                executor.scheduleAtFixedRate(() -> {
+                    try {
+                        if (client.isClosed()) {
+                            boolean reconnectSuccess = client.reconnectBlocking();
+                            if (reconnectSuccess) {
+                                log.info("websocket reconnect is successful.....");
+                            } else {
+                                log.error("websocket reconnection is error.....");
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        log.error("websocket connect is error :{}", e.getMessage());
+                    }
+                }, 10, 30, TimeUnit.SECONDS);
+            }
+            /* client.setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("proxyaddress", 80)));*/
+        } catch (InterruptedException e) {
+            log.info("websocket connection...exception....", e);
+        }
+    }
+    ......
+}
 ```
 
-明显的，此处创建了一个 `SoulWebsocketClient`。
+明显的，此处创建了一个 `SoulWebsocketClient`，然后将其丢入线程池类，每 30s 判断一次 `websocket` 服务是否连接正常。
 
 > 猜想：数据同步将从类 `SoulWebsocketClient` 开始。
 
@@ -274,4 +316,166 @@ public class CommonPluginDataSubscriber implements PluginDataSubscriber {
 
 接下来需要针对 `handler.handlerPlugin(pluginData)`、`handler.handlerSelector(selectorData)`、`handler.handlerRule(ruleData)` 三者进行分析。
 
-***未完待续***
+---
+未完待续
+
+---
+2月4日更新
+
+## `soul-admin` 模块
+
+查看 soul-admin 模块的配置类 DataSyncConfiguration。以下代码是 `websocket` 相关的初始化。
+
+```java
+@Configuration
+public class DataSyncConfiguration {
+    ......
+    @Configuration
+    @ConditionalOnProperty(name = "soul.sync.websocket.enabled", havingValue = "true", matchIfMissing = true)
+    @EnableConfigurationProperties(WebsocketSyncProperties.class)
+    static class WebsocketListener {
+        @Bean
+        @ConditionalOnMissingBean(WebsocketDataChangedListener.class)
+        public DataChangedListener websocketDataChangedListener() {
+            return new WebsocketDataChangedListener();
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(WebsocketCollector.class)
+        public WebsocketCollector websocketCollector() {
+            return new WebsocketCollector();
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(ServerEndpointExporter.class)
+        public ServerEndpointExporter serverEndpointExporter() {
+            return new ServerEndpointExporter();
+        }
+    }
+}
+```
+
+在深入探究实例化的三个类之前，需要特殊说明一下类 `DataChangedEventDispatcher`。该类实现了 `ApplicationListener`，利用Spring事件监听机制，循环接口 `DataChangedListener` 的实现类——其中包括配置类实例化的 `WebsocketDataChangedListener`——调用具体的处理逻辑。
+
+```java
+@Component
+public class DataChangedEventDispatcher implements ApplicationListener<DataChangedEvent>, InitializingBean {
+
+    private ApplicationContext applicationContext;
+
+    private List<DataChangedListener> listeners;
+
+    public DataChangedEventDispatcher(final ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void onApplicationEvent(final DataChangedEvent event) {
+        for (DataChangedListener listener : listeners) {
+            switch (event.getGroupKey()) {
+                case APP_AUTH:
+                    listener.onAppAuthChanged((List<AppAuthData>) event.getSource(), event.getEventType());
+                    break;
+                case PLUGIN:
+                    listener.onPluginChanged((List<PluginData>) event.getSource(), event.getEventType());
+                    break;
+                case RULE:
+                    listener.onRuleChanged((List<RuleData>) event.getSource(), event.getEventType());
+                    break;
+                case SELECTOR:
+                    listener.onSelectorChanged((List<SelectorData>) event.getSource(), event.getEventType());
+                    break;
+                case META_DATA:
+                    listener.onMetaDataChanged((List<MetaData>) event.getSource(), event.getEventType());
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + event.getGroupKey());
+            }
+        }
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        Collection<DataChangedListener> listenerBeans = applicationContext.getBeansOfType(DataChangedListener.class).values();
+        this.listeners = Collections.unmodifiableList(new ArrayList<>(listenerBeans));
+    }
+}
+```
+
+- `WebsocketDataChangedListener`
+
+当监听到数据变化时，该类调用方法 `WebsocketCollector#send`，将变化的数据发给网关。核心代码如下。
+
+```java
+public class WebsocketDataChangedListener implements DataChangedListener {
+
+    @Override
+    public void onPluginChanged(final List<PluginData> pluginDataList, final DataEventTypeEnum eventType) {
+        WebsocketData<PluginData> websocketData =
+                new WebsocketData<>(ConfigGroupEnum.PLUGIN.name(), eventType.name(), pluginDataList);
+        WebsocketCollector.send(GsonUtils.getInstance().toJson(websocketData), eventType);
+    }
+
+    @Override
+    public void onSelectorChanged(final List<SelectorData> selectorDataList, final DataEventTypeEnum eventType) {
+        WebsocketData<SelectorData> websocketData =
+                new WebsocketData<>(ConfigGroupEnum.SELECTOR.name(), eventType.name(), selectorDataList);
+        WebsocketCollector.send(GsonUtils.getInstance().toJson(websocketData), eventType);
+    }
+
+    @Override
+    public void onRuleChanged(final List<RuleData> ruleDataList, final DataEventTypeEnum eventType) {
+        WebsocketData<RuleData> configData =
+                new WebsocketData<>(ConfigGroupEnum.RULE.name(), eventType.name(), ruleDataList);
+        WebsocketCollector.send(GsonUtils.getInstance().toJson(configData), eventType);
+    }
+
+    @Override
+    public void onAppAuthChanged(final List<AppAuthData> appAuthDataList, final DataEventTypeEnum eventType) {
+        WebsocketData<AppAuthData> configData =
+                new WebsocketData<>(ConfigGroupEnum.APP_AUTH.name(), eventType.name(), appAuthDataList);
+        WebsocketCollector.send(GsonUtils.getInstance().toJson(configData), eventType);
+    }
+
+    @Override
+    public void onMetaDataChanged(final List<MetaData> metaDataList, final DataEventTypeEnum eventType) {
+        WebsocketData<MetaData> configData =
+                new WebsocketData<>(ConfigGroupEnum.META_DATA.name(), eventType.name(), metaDataList);
+        WebsocketCollector.send(GsonUtils.getInstance().toJson(configData), eventType);
+    }
+}
+```
+
+- `WebsocketCollector`
+
+前面提到了当监听到数据变化时，调用 `send` 方法同步数据到网关。
+
+```java
+@ServerEndpoint("/websocket")
+public class WebsocketCollector {
+    ......
+    public static void send(final String message, final DataEventTypeEnum type) {
+        if (StringUtils.isNotBlank(message)) {
+            if (DataEventTypeEnum.MYSELF == type) {
+                Session session = (Session) ThreadLocalUtil.get(SESSION_KEY);
+                if (session != null) {
+                    sendMessageBySession(session, message);
+                }
+            } else {
+                SESSION_SET.forEach(session -> sendMessageBySession(session, message));
+            }
+        }
+    }
+
+    private static void sendMessageBySession(final Session session, final String message) {
+        try {
+            session.getBasicRemote().sendText(message);
+        } catch (IOException e) {
+            log.error("websocket send result is exception: ", e);
+        }
+    }
+}
+```
+
+- `ServerEndpointExporter`
