@@ -174,4 +174,86 @@ public class ZookeeperSyncDataService implements SyncDataService, AutoCloseable 
 
 ![watcherData方法调用栈](/images/soul/watcherData.png)
 
-***未完待续***
+---
+未完待续
+
+---
+2月5日更新
+
+## `soul-admin` 模块
+
+查看 soul-admin 模块的配置类 DataSyncConfiguration。以下代码是 `zookeeper` 相关的初始化。
+
+```java
+@Configuration
+public class DataSyncConfiguration {
+    ......
+    @Configuration
+    @ConditionalOnProperty(prefix = "soul.sync.zookeeper", name = "url")
+    @Import(ZookeeperConfiguration.class)
+    static class ZookeeperListener {
+        @Bean
+        @ConditionalOnMissingBean(ZookeeperDataChangedListener.class)
+        public DataChangedListener zookeeperDataChangedListener(final ZkClient zkClient) {
+            return new ZookeeperDataChangedListener(zkClient);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(ZookeeperDataInit.class)
+        public ZookeeperDataInit zookeeperDataInit(final ZkClient zkClient, final SyncDataService syncDataService) {
+            return new ZookeeperDataInit(zkClient, syncDataService);
+        }
+    }
+    ......
+}
+```
+
+同 `websocket` 一样，在深入探究实例化的个类之前，需要特殊说明一下类 `DataChangedEventDispatcher`。该类实现了 `ApplicationListener`，利用Spring事件监听机制，循环接口 `DataChangedListener` 的实现类——其中包括配置类实例化的 `ZookeeperDataChangedListener`——调用具体的处理逻辑。此处就不再展示它的源码，详细可见 `websocket` 对应部分。直接查看 zookeeper 数据同步监听类的源码。
+
+- `ZookeeperDataChangedListener`
+
+```java
+public class ZookeeperDataChangedListener implements DataChangedListener {
+    ......
+    @Override
+    public void onRuleChanged(final List<RuleData> changed, final DataEventTypeEnum eventType) {
+        if (eventType == DataEventTypeEnum.REFRESH && !changed.isEmpty()) {
+            String selectorParentPath = ZkPathConstants.buildRuleParentPath(changed.get(0).getPluginName());
+            deleteZkPathRecursive(selectorParentPath);
+        }
+        for (RuleData data : changed) {
+            String ruleRealPath = ZkPathConstants.buildRulePath(data.getPluginName(), data.getSelectorId(), data.getId());
+            if (eventType == DataEventTypeEnum.DELETE) {
+                deleteZkPath(ruleRealPath);
+                continue;
+            }
+            String ruleParentPath = ZkPathConstants.buildRuleParentPath(data.getPluginName());
+            createZkNode(ruleParentPath);
+            //create or update
+            insertZkNode(ruleRealPath, data);
+        }
+    }
+    ......
+}
+```
+
+此处仅展示方法 `onRuleChanged`，其他方法原理与之相同，都是通过类 `ZkClient` 将监听到的数据同步给网关。
+
+- `ZookeeperDataInit`
+
+```java
+public class ZookeeperDataInit implements CommandLineRunner {
+    ......
+    @Override
+    public void run(final String... args) {
+        String pluginPath = ZkPathConstants.PLUGIN_PARENT;
+        String authPath = ZkPathConstants.APP_AUTH_PARENT;
+        String metaDataPath = ZkPathConstants.META_DATA;
+        if (!zkClient.exists(pluginPath) && !zkClient.exists(authPath) && !zkClient.exists(metaDataPath)) {
+            syncDataService.syncAll(DataEventTypeEnum.REFRESH);
+        }
+    }
+}
+```
+
+由于类 `ZookeeperDataInit` 实现了接口 `CommandLineRunner`，在项目启动的之后就会执行方法 `run` 里面的内容。当所有内容都不存在的时候，同步插件数据、认证数据、元数据。
