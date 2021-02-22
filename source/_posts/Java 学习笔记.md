@@ -1656,6 +1656,68 @@ public void print(String[] args) {
 9. HashSet
 10. LinkedHashSet & TreeSet
 
+### ThreadLocal
+
+```java
+public class ThreadLocal<T> {
+    // set值
+    public void set(T value) {
+        Thread t = Thread.currentThread();
+        ThreadLocalMap map = getMap(t);
+        if (map != null)
+            map.set(this, value);
+        else
+            createMap(t, value);
+    }
+
+    // get值
+    public T get() {
+        Thread t = Thread.currentThread();
+        ThreadLocalMap map = getMap(t);
+        if (map != null) {
+            ThreadLocalMap.Entry e = map.getEntry(this);
+            if (e != null) {
+                @SuppressWarnings("unchecked")
+                T result = (T)e.value;
+                return result;
+            }
+        }
+        return setInitialValue();
+    }
+
+    // 删除值
+    public void remove() {
+        ThreadLocalMap m = getMap(Thread.currentThread());
+        if (m != null)
+            m.remove(this);
+    }
+
+    static class ThreadLocalMap {
+        static class Entry extends WeakReference<ThreadLocal<?>> {
+            /** The value associated with this ThreadLocal. */
+            Object value;
+
+            Entry(ThreadLocal<?> k, Object v) {
+                super(k);
+                value = v;
+            }
+        }
+        ......
+    }
+}
+```
+
+1. 当在线程 t 的某个类的方法中 `ThreadLocal tl = new ThreadLocal()` 时，会产生引用关系：tl 引用 ThreadLocal 对象；
+2. 接着向 ThreadLocal 对象中 set 值，通过源码可知，是向 ThreadLocalMap 中放入 key（ThreadLocal） 和 value；
+3. ThreadLocalMap 的引用是线程 t 的 threadLocals 属性；
+4. ThreadLocalMap 中的最小单位是 Entry，它继承了弱引用 WeakReference；
+5. 生成 Entry 时，将 key 设置为了 WeakReference，并指向 ThreadLocal，此时 key 和 ThreadLocal 之间是弱引用关系。value 还是正常的引用关系。
+6. 当 tl 对 ThreadLocal 的引用结束时，threadLocals 对 ThreadLocalMap 的引用仍然成立，key 对 ThreadLocal 的弱引用仍然成立，value 对具体对象的引用仍然成立；
+7. 如果 key 是强引用，则 ThreadLocal 不会被 GC 回收，会导致内存泄漏；
+8. 如果每次使用完 ThreadLocal 忘记 remove，虽然 ThreadLocal 被回收掉了，但 ThreadLocalMap 仍然存在，那么 value 引用的对象仍然存在，也会导致内存泄露。
+
+![ThreadLocal](/images/java/ThreadLocal.png)
+
 ### ArrayList
 
 ```java
